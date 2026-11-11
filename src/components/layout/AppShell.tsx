@@ -82,8 +82,8 @@ export const AppShell: React.FC<AppShellProps> = ({
   };
 
   const handleLogout = async () => {
-    await logout();
     navigate('/', { replace: true });
+    await logout();
   };
 
   const handleSearchInput = (value: string) => {

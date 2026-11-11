@@ -107,7 +107,7 @@ export const LandingPage: React.FC = () => {
       <PublicNavbar />
 
       {/* 2. Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28 bg-fintech-grid">
+      <section className="relative overflow-hidden pt-8 pb-14 lg:pt-14 lg:pb-20 bg-fintech-grid">
         {/* Subtle animated glow */}
         <motion.div
           animate={{ opacity: [0.45, 0.7, 0.45], scale: [1, 1.05, 1] }}
@@ -134,32 +134,34 @@ export const LandingPage: React.FC = () => {
                 <span>Independent Hackathon Project • PayPal Sandbox Ready</span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-[3.35rem] font-extrabold tracking-tight text-[#101C3A] leading-[1.1]">
-                Your AI Payment Agent.{' '}
-                <span className="text-[#315CFF]">From Conversation to Completed Payment.</span>
+              <h1 className="text-[1.85rem] sm:text-4xl lg:text-[2.65rem] font-extrabold tracking-tight text-[#101C3A] leading-[1.15]">
+                Your AI Payment Agent.
+                <span className="block bg-gradient-to-r from-[#315CFF] to-[#38C6D9] bg-clip-text text-transparent mt-1">
+                  From Conversation to Completed Payment.
+                </span>
               </h1>
 
-              <p className="text-base sm:text-lg text-[#68758C] leading-relaxed max-w-xl">
+              <p className="text-sm sm:text-base text-[#68758C] leading-relaxed max-w-xl">
                 Describe payment requirements in plain English. PayPilot AI extracts structured invoice details, asks for missing information, awaits your explicit approval, and powers verified PayPal Sandbox checkout.
               </p>
 
-              <div className="flex flex-wrap items-center gap-3.5 pt-2">
+              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 pt-1">
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 bg-[#315CFF] hover:bg-[#2347d6] text-white font-semibold text-sm px-6 py-3.5 rounded-xl shadow-md shadow-[#315CFF]/20 hover:shadow-lg transition-all"
+                  className="inline-flex items-center justify-center gap-2 bg-[#315CFF] hover:bg-[#2347d6] text-white font-semibold text-sm px-6 py-3 rounded-xl shadow-md shadow-[#315CFF]/20 hover:shadow-lg transition-all"
                 >
                   <span>Start Free Workspace</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-2 bg-white hover:bg-[#EAF1FF]/60 text-[#101C3A] border border-[#E7EAF1] font-semibold text-sm px-6 py-3.5 rounded-xl transition-all"
+                  className="inline-flex items-center justify-center gap-2 bg-white hover:bg-[#EAF1FF]/60 text-[#101C3A] border border-[#E7EAF1] font-semibold text-sm px-6 py-3 rounded-xl transition-all"
                 >
                   <span>Try Demo Account</span>
                 </Link>
                 <Link
                   to="/how-it-works"
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#315CFF] hover:underline px-2 py-2"
+                  className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-[#315CFF] hover:underline px-2 py-2"
                 >
                   <span>See workflow</span>
                   <ArrowRight className="w-3.5 h-3.5" />

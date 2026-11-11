@@ -118,8 +118,8 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await logout();
     navigate('/', { replace: true });
+    await logout();
   };
 
   return (

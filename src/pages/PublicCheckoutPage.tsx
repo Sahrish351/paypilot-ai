@@ -65,10 +65,14 @@ export const PublicCheckoutPage: React.FC = () => {
     if (token) load();
   }, [token]);
 
-  // Handle PayPal approval redirect return (?paypalStatus=success&token=ORDER_ID)
+  // Handle PayPal approval/cancel redirect return
   useEffect(() => {
     const status = searchParams.get('paypalStatus');
     const orderToken = searchParams.get('token');
+    if (status === 'cancelled') {
+      setCheckoutError('PayPal checkout was cancelled. You can review the details and try again below.');
+      return;
+    }
     if (status === 'success' && orderToken && requestData && requestData.status !== 'COMPLETED') {
       captureApprovedOrder(orderToken);
     }
