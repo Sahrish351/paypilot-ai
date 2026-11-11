@@ -1,7 +1,17 @@
 import crypto from 'crypto';
 
-const AUTH_SECRET = process.env.AUTH_SECRET || 'paypilot-ai-local-dev-secret-change-me';
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function getAuthSecret(): string {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret || secret === 'replace-with-a-long-random-secret-string') {
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('[Security] AUTH_SECRET is missing or using placeholder in production!');
+    }
+    return 'paypilot-ai-local-dev-secret-change-me';
+  }
+  return secret;
+}
 
 /**
  * Hash a plaintext password with a random 16-byte salt using scrypt.
@@ -54,7 +64,7 @@ export function signSessionToken(userId: string, email: string): string {
   };
   const encodedPayload = Buffer.from(JSON.stringify(payload), 'utf-8').toString('base64url');
   const signature = crypto
-    .createHmac('sha256', AUTH_SECRET)
+    .createHmac('sha256', getAuthSecret())
     .update(encodedPayload)
     .digest('base64url');
   return `${encodedPayload}.${signature}`;
@@ -69,7 +79,7 @@ export function verifySessionToken(token: string): SessionTokenPayload | null {
   if (!encodedPayload || !providedSig) return null;
 
   const expectedSig = crypto
-    .createHmac('sha256', AUTH_SECRET)
+    .createHmac('sha256', getAuthSecret())
     .update(encodedPayload)
     .digest('base64url');
 

@@ -1,10 +1,24 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { db } from '../db.ts';
 import { PaymentProposalPayload } from '../types.ts';
 
 let aiClient: GoogleGenAI | null = null;
+let cachedApiKey: string | null = null;
 
 const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
+const GEMINI_TIMEOUT_MS = 20_000;
+
+async function withTimeout<T>(promise: Promise<T>, ms = GEMINI_TIMEOUT_MS): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Gemini request timed out after ${ms}ms`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timer!);
+  }
+}
 
 export function isGeminiConfigured(): boolean {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -12,12 +26,15 @@ export function isGeminiConfigured(): boolean {
 }
 
 function getAIClient(): GoogleGenAI | null {
-  if (aiClient) return aiClient;
   if (!isGeminiConfigured()) return null;
+  const currentKey = process.env.GEMINI_API_KEY!.trim();
+  if (aiClient && cachedApiKey === currentKey) return aiClient;
   try {
     aiClient = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY!.trim(),
+      apiKey: currentKey,
+      apiVersion: 'v1beta',
     });
+    cachedApiKey = currentKey;
     return aiClient;
   } catch (err) {
     console.error('[Gemini] Initialization error:', err);
@@ -132,39 +149,44 @@ export async function processAIChat(
 ): Promise<AIChatResponse> {
   const ai = getAIClient();
   const existingClients = db.getClients(ownerId).map(c => ({ name: c.name, email: c.email }));
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+  const candidateModels = primaryModel === 'gemini-3.1-flash-lite-preview'
+    ? [primaryModel]
+    : [primaryModel, 'gemini-3.1-flash-lite-preview'];
 
   if (ai) {
-    try {
-      const contextSnippet = activeProposal
-        ? `\n[CURRENT DRAFT PROPOSAL IN WORKSPACE]: ${JSON.stringify(activeProposal)}\nIf the user is providing missing details (such as email, due date, amount, or notes) for this draft proposal, merge them into the updated proposal JSON.`
-        : '';
+    for (const modelName of candidateModels) {
+      try {
+        const contextSnippet = activeProposal
+          ? `\n[CURRENT DRAFT PROPOSAL IN WORKSPACE]: ${JSON.stringify(activeProposal)}\nIf the user is providing missing details (such as email, due date, amount, or notes) for this draft proposal, merge them into the updated proposal JSON.`
+          : '';
 
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: [
-          ...conversationHistory.map(h => ({
-            role: h.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: h.content }],
-          })),
-          {
-            role: 'user',
-            parts: [
+        const response = await withTimeout(
+          ai.models.generateContent({
+            model: modelName,
+            contents: [
+              ...conversationHistory.map(h => ({
+                role: h.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: h.content }],
+              })),
               {
-                text: `${userMessage}${contextSnippet}\n\n[JSON OUTPUT SPECIFICATION]:
+                role: 'user',
+                parts: [
+                  {
+                    text: `${userMessage}${contextSnippet}\n\n[JSON OUTPUT SPECIFICATION]:
 If the user wants to create, update, or clarify a payment request or invoice, return:
 {
   "message": "Clear, helpful response summarizing extracted details and asking any clarification questions if fields are missing.",
   "suggested_action": "review_payment",
   "proposal": {
     "client_name": "string",
-    "client_email": "string or empty if not provided",
+    "client_email": "exact email written by user, or \"\" if not provided (NEVER guess or invent an email)",
     "service_name": "concise service title",
     "description": "professional 1-2 sentence deliverable description",
     "quantity": 1,
     "unit_price": number (0 if not specified),
     "currency": "USD",
-    "due_date": "YYYY-MM-DD or empty if not specified",
+    "due_date": "YYYY-MM-DD only if explicitly specified by user, otherwise \"\" (NEVER guess a date)",
     "total_amount": number
   }
 }
@@ -173,68 +195,54 @@ If the user is asking about transactions, revenue, or general guidance, return:
   "message": "Your helpful response based strictly on verified platform capabilities.",
   "suggested_action": "explore_dashboard"
 }`,
+                  },
+                ],
               },
             ],
-          },
-        ],
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              message: { type: Type.STRING },
-              suggested_action: { type: Type.STRING },
-              proposal: {
-                type: Type.OBJECT,
-                properties: {
-                  client_name: { type: Type.STRING },
-                  client_email: { type: Type.STRING },
-                  service_name: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  quantity: { type: Type.NUMBER },
-                  unit_price: { type: Type.NUMBER },
-                  currency: { type: Type.STRING },
-                  due_date: { type: Type.STRING },
-                  total_amount: { type: Type.NUMBER },
-                },
-              },
+            config: {
+              systemInstruction: SYSTEM_INSTRUCTION,
+              responseMimeType: 'application/json',
             },
-            required: ['message'],
-          },
-        },
-      });
+          })
+        );
 
-      const rawText = response.text;
-      if (rawText) {
-        let cleaned = rawText.trim();
-        if (cleaned.startsWith('```json')) {
-          cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
-        } else if (cleaned.startsWith('```')) {
-          cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
-        }
+        const rawText = response.text;
+        if (rawText) {
+          let cleaned = rawText.trim();
+          if (cleaned.startsWith('```json')) {
+            cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+          } else if (cleaned.startsWith('```')) {
+            cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
+          }
 
-        const parsed = JSON.parse(cleaned) as {
-          message?: string;
-          suggested_action?: string;
-          proposal?: Partial<PaymentProposalPayload>;
-        };
-
-        if (parsed && parsed.message) {
-          const validatedProposal = parsed.proposal
-            ? validateAndSanitizeProposal(parsed.proposal, existingClients)
-            : undefined;
-
-          return {
-            message: parsed.message,
-            aiMode: 'gemini-live',
-            suggested_action: parsed.suggested_action,
-            proposal: validatedProposal,
+          const parsed = JSON.parse(cleaned) as {
+            message?: string;
+            suggested_action?: string;
+            proposal?: Partial<PaymentProposalPayload>;
           };
+
+          if (parsed && parsed.message) {
+            const validatedProposal = parsed.proposal
+              ? validateAndSanitizeProposal(parsed.proposal, existingClients)
+              : undefined;
+
+            return {
+              message: parsed.message,
+              aiMode: 'gemini-live',
+              suggested_action: parsed.suggested_action,
+              proposal: validatedProposal,
+            };
+          }
         }
+      } catch (err: any) {
+        const msg = String(err?.message || err || '');
+        if ((msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) && modelName !== candidateModels[candidateModels.length - 1]) {
+          console.warn(`[Gemini] ${modelName} quota exhausted, trying fallback model...`);
+          continue;
+        }
+        console.warn(`[Gemini] Live call failed (${modelName}), using deterministic fallback parser:`, err);
+        break;
       }
-    } catch (err) {
-      console.warn('[Gemini] Live call failed, using deterministic fallback parser:', err);
     }
   }
 
@@ -412,16 +420,18 @@ function fallbackParser(
 
 export async function generateAIInvoiceDescription(serviceName: string, clientName: string): Promise<string> {
   const ai = getAIClient();
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
   if (ai) {
     try {
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: `Write a concise, professional 1-2 sentence invoice description for the service "${serviceName}" provided to client "${clientName}". Output only the description text.`,
-        config: {
-          systemInstruction: 'You are a professional invoice copywriter. Be crisp, clear, and business-grade.',
-        },
-      });
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model: modelName,
+          contents: `Write a concise, professional 1-2 sentence invoice description for the service "${serviceName}" provided to client "${clientName}". Output only the description text.`,
+          config: {
+            systemInstruction: 'You are a professional invoice copywriter. Be crisp, clear, and business-grade.',
+          },
+        })
+      );
       if (response.text) return response.text.trim();
     } catch (e) {
       console.warn('[Gemini] generateAIInvoiceDescription fallback:', e);
@@ -437,15 +447,17 @@ export async function generateAIReminder(
   tone: string
 ): Promise<string> {
   const ai = getAIClient();
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
   if (ai) {
     try {
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: `Draft a payment reminder message for client ${clientName} for invoice amount $${amount.toFixed(2)} USD due on ${dueDate}.
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model: modelName,
+          contents: `Draft a payment reminder message for client ${clientName} for invoice amount $${amount.toFixed(2)} USD due on ${dueDate}.
 Tone: ${tone}.
 Keep it concise, courteous, and include {{PAYMENT_LINK}} placeholder.`,
-      });
+        })
+      );
       if (response.text) return response.text.trim();
     } catch (e) {
       console.warn('[Gemini] generateAIReminder fallback:', e);
@@ -501,7 +513,7 @@ export async function generateAIRevenueInsights(ownerId: string): Promise<{
   };
 
   const ai = getAIClient();
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
   if (ai) {
     try {
       const topClients = clients
@@ -511,9 +523,10 @@ export async function generateAIRevenueInsights(ownerId: string): Promise<{
         .map(c => `${c.name} ($${c.totalPaid.toFixed(2)} paid, $${c.pendingAmount.toFixed(2)} pending)`)
         .join('; ');
 
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: `Analyze ONLY these backend-computed metrics for the business owner (do NOT invent any additional numbers):
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model: modelName,
+          contents: `Analyze ONLY these backend-computed metrics for the business owner (do NOT invent any additional numbers):
 - Total Captured Revenue: $${totalRevenue.toFixed(2)}
 - Completed Transactions: ${completedCount}
 - Average Transaction Ticket: $${averageTicket.toFixed(2)}
@@ -527,21 +540,13 @@ Generate JSON:
   "keyInsights": ["insight 1", "insight 2", "insight 3"],
   "recommendations": ["actionable recommendation 1", "actionable recommendation 2", "actionable recommendation 3"]
 }`,
-        config: {
-          systemInstruction:
-            'You are a financial analyst. Never fabricate numbers or percentages not directly derivable from the provided metrics.',
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              summary: { type: Type.STRING },
-              keyInsights: { type: Type.ARRAY, items: { type: Type.STRING } },
-              recommendations: { type: Type.ARRAY, items: { type: Type.STRING } },
-            },
-            required: ['summary', 'keyInsights', 'recommendations'],
+          config: {
+            systemInstruction:
+              'You are a financial analyst. Never fabricate numbers or percentages not directly derivable from the provided metrics.',
+            responseMimeType: 'application/json',
           },
-        },
-      });
+        })
+      );
 
       if (response.text) {
         const parsed = JSON.parse(response.text);

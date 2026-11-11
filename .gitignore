@@ -4,6 +4,9 @@ dist/
 coverage/
 .DS_Store
 *.log
-.env*
+.env
+.env.*
 !.env.example
 .aistudio/
+data/store.json
+data/*.json

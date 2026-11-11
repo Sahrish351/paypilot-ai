@@ -70,6 +70,7 @@ async function getPayPalAccessToken(): Promise<string> {
       Authorization: `Basic ${auth}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!response.ok) {
@@ -140,9 +141,10 @@ export async function createPayPalOrder(paymentRequest: PaymentRequest): Promise
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
-      'PayPal-Request-Id': `PAYPILOT_CREATE_${paymentRequest.id}`,
+      'PayPal-Request-Id': `PAYPILOT_CREATE_${paymentRequest.id}_${paymentRequest.updatedAt}`,
     },
     body: JSON.stringify(orderPayload),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!response.ok) {
@@ -196,7 +198,7 @@ export async function capturePayPalOrder(
     throw new Error('Cannot capture a cancelled payment request.');
   }
 
-  if (paymentRequest.paypalOrderId && paymentRequest.paypalOrderId !== paypalOrderId) {
+  if (!paymentRequest.paypalOrderId || paymentRequest.paypalOrderId !== paypalOrderId) {
     throw new Error('Order ID mismatch: provided order does not belong to this payment request.');
   }
 
@@ -210,6 +212,7 @@ export async function capturePayPalOrder(
       Authorization: `Bearer ${token}`,
       'PayPal-Request-Id': `PAYPILOT_CAPTURE_${paymentRequest.id}_${paypalOrderId}`,
     },
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!response.ok) {

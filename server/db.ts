@@ -13,9 +13,11 @@ interface DatabaseSchema {
 }
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
-const DB_FILE = process.env.PAYPILOT_DB_FILE
-  ? path.resolve(process.env.PAYPILOT_DB_FILE)
-  : path.join(DATA_DIR, 'store.json');
+function resolveDbFile(): string {
+  return process.env.PAYPILOT_DB_FILE
+    ? path.resolve(process.env.PAYPILOT_DB_FILE)
+    : path.join(DATA_DIR, 'store.json');
+}
 
 function getInitialData(): DatabaseSchema {
   const defaultOwnerId = 'usr_john_doe_01';
@@ -387,20 +389,27 @@ function getInitialData(): DatabaseSchema {
   };
 }
 
-class Database {
+export class Database {
   private data: DatabaseSchema;
+  private dbFile: string;
 
-  constructor() {
+  constructor(dbFilePath?: string) {
+    this.dbFile = dbFilePath ? path.resolve(dbFilePath) : resolveDbFile();
+    this.data = this.load();
+  }
+
+  public reload(): void {
     this.data = this.load();
   }
 
   private load(): DatabaseSchema {
+    const targetDir = path.dirname(this.dbFile);
     try {
-      if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
       }
-      if (fs.existsSync(DB_FILE)) {
-        const raw = fs.readFileSync(DB_FILE, 'utf-8');
+      if (fs.existsSync(this.dbFile)) {
+        const raw = fs.readFileSync(this.dbFile, 'utf-8');
         const parsed = JSON.parse(raw) as DatabaseSchema;
         // Ensure demo user is tagged properly
         const demo = parsed.users?.find(u => u.id === 'usr_john_doe_01');
@@ -418,11 +427,12 @@ class Database {
   }
 
   private save(dataToSave: DatabaseSchema = this.data) {
+    const targetDir = path.dirname(this.dbFile);
     try {
-      if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
       }
-      fs.writeFileSync(DB_FILE, JSON.stringify(dataToSave, null, 2), 'utf-8');
+      fs.writeFileSync(this.dbFile, JSON.stringify(dataToSave, null, 2), 'utf-8');
     } catch (e) {
       console.error('[DB] Failed saving database:', e);
     }

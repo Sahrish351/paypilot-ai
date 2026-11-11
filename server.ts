@@ -11,7 +11,7 @@ import reportsRoutes from './server/routes/reports.ts';
 import { isGeminiConfigured } from './server/services/gemini.ts';
 import { isPayPalConfigured } from './server/services/paypal.ts';
 
-dotenv.config();
+dotenv.config({ path: ['.env.local', '.env'], quiet: true });
 
 // Lightweight sliding-window rate limiter (no external dependency required)
 function createRateLimiter(windowMs: number, maxRequests: number) {
@@ -33,6 +33,27 @@ function createRateLimiter(windowMs: number, maxRequests: number) {
 
 export function createApp() {
   const app = express();
+
+  // Explicit CORS policy for credentialed requests
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const allowedOrigins = new Set([
+      process.env.APP_URL || 'http://localhost:3000',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+    ]);
+    if (origin && allowedOrigins.has(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    }
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
 
   // Security headers
   app.use((_req, res, next) => {
@@ -61,12 +82,17 @@ export function createApp() {
     });
   });
 
-  // Rate limits for auth & AI endpoints
-  const authLimiter = createRateLimiter(60_000, 30);
+  // Rate limits for auth mutations (brute-force protection) & AI endpoints
+  const authMutationLimiter = createRateLimiter(60_000, 30);
   const aiLimiter = createRateLimiter(60_000, 40);
 
   // API Routes
-  app.use('/api/auth', authLimiter, authRoutes);
+  app.use('/api/auth', (req, res, next) => {
+    if (req.method === 'POST') {
+      return authMutationLimiter(req, res, next);
+    }
+    return next();
+  }, authRoutes);
   app.use('/api/ai', aiLimiter, aiRoutes);
   app.use('/api/payment-requests', paymentRequestsRoutes);
   app.use('/api/payments', paymentsRoutes);
