@@ -1,16 +1,19 @@
-export type ViewMode =
-  | 'landing'
-  | 'dashboard'
-  | 'ai-agent'
-  | 'payments'
-  | 'transactions'
-  | 'clients'
-  | 'analytics'
-  | 'reports'
-  | 'automation'
-  | 'settings'
-  | 'help'
-  | 'public-checkout';
+export type PaymentStatus =
+  | 'DRAFT'
+  | 'PENDING'
+  | 'APPROVED'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'REFUNDED'
+  | 'OVERDUE';
+
+export interface NotificationPreferences {
+  emailReceipts: boolean;
+  overdueReminders: boolean;
+  aiInsightsDigest: boolean;
+  paymentAlerts: boolean;
+}
 
 export interface UserProfile {
   id: string;
@@ -20,6 +23,9 @@ export interface UserProfile {
   businessType: string;
   businessDescription: string;
   defaultCurrency: string;
+  onboardingCompleted?: boolean;
+  isDemoAccount?: boolean;
+  notificationPreferences?: NotificationPreferences;
   avatarUrl?: string;
 }
 
@@ -33,6 +39,7 @@ export interface ClientItem {
   totalPaid: number;
   pendingAmount: number;
   lastPaymentDate?: string;
+  createdAt?: string;
 }
 
 export interface LineItem {
@@ -47,6 +54,7 @@ export interface LineItem {
 export interface PaymentRequestItem {
   id: string;
   requestNumber: string;
+  clientId?: string;
   clientName: string;
   clientEmail?: string;
   title: string;
@@ -56,14 +64,16 @@ export interface PaymentRequestItem {
   totalAmount: number;
   currency: string;
   dueDate: string;
-  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED' | 'OVERDUE';
+  status: PaymentStatus;
   publicToken: string;
   paypalOrderId?: string;
+  notes?: string;
   createdAt: string;
 }
 
 export interface TransactionItem {
   id: string;
+  paymentRequestId?: string;
   paypalOrderId: string;
   paypalCaptureId: string;
   clientName: string;
@@ -74,8 +84,23 @@ export interface TransactionItem {
   status: 'Completed' | 'Refunded' | 'Pending' | 'Failed';
   type: 'Payment' | 'Refund' | 'Invoice';
   captureReference?: string;
+  environment?: 'sandbox';
   createdAt: string;
   capturedAt: string;
+}
+
+export interface PaymentProposal {
+  client_name: string;
+  client_email?: string;
+  service_name: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  currency: string;
+  due_date: string;
+  total_amount: number;
+  missing_fields?: string[];
+  clarification_questions?: string[];
 }
 
 export interface ChatMessage {
@@ -83,26 +108,25 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
-  proposal?: {
-    client_name: string;
-    client_email?: string;
-    service_name: string;
-    description: string;
-    quantity: number;
-    unit_price: number;
-    currency: string;
-    due_date: string;
-    total_amount: number;
-  };
+  aiMode?: 'gemini-live' | 'heuristic-fallback';
+  proposal?: PaymentProposal;
 }
 
 export interface DashboardStats {
   totalRevenue: number;
-  revenueChange: string;
   totalTransactions: number;
-  transactionsChange: string;
   activeClients: number;
-  clientsChange: string;
   pendingPayments: number;
-  pendingChange: string;
+  completedRequests: number;
+  overdueRequests: number;
+  isDemoData?: boolean;
+}
+
+export interface NotificationRecord {
+  id: string;
+  title: string;
+  message: string;
+  type: 'payment' | 'system' | 'ai';
+  read: boolean;
+  createdAt: string;
 }

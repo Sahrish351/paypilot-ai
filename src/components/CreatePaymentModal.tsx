@@ -1,17 +1,6 @@
-import React, { useState } from 'react';
-import {
-  X,
-  Bot,
-  Sparkles,
-  CreditCard,
-  Plus,
-  Trash2,
-  Calendar,
-  Check,
-  Copy,
-  ExternalLink,
-  RefreshCw,
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Bot, Copy, Check, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
+import { Modal } from './ui/Modal.tsx';
 import { PaymentRequestItem } from '../types.ts';
 
 interface CreatePaymentModalProps {
@@ -29,84 +18,107 @@ export const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
   prefillClientName = '',
   prefillClientEmail = '',
 }) => {
-  if (!isOpen) return null;
-
   const [mode, setMode] = useState<'ai' | 'manual'>('ai');
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
 
-  // Form fields
-  const [clientName, setClientName] = useState(prefillClientName || '');
-  const [clientEmail, setClientEmail] = useState(prefillClientEmail || '');
+  const [clientName, setClientName] = useState(prefillClientName);
+  const [clientEmail, setClientEmail] = useState(prefillClientEmail);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [unitPrice, setUnitPrice] = useState<number>(450);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [dueDate, setDueDate] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
+  const [unitPrice, setUnitPrice] = useState<string>('250');
+  const [quantity, setQuantity] = useState<string>('1');
+  const [currency, setCurrency] = useState('USD');
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date(Date.now() + 7 * 86400000);
     return d.toISOString().split('T')[0];
   });
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [createdItem, setCreatedItem] = useState<PaymentRequestItem | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // AI Assistant auto-fill
+  useEffect(() => {
+    if (isOpen) {
+      setClientName(prefillClientName);
+      setClientEmail(prefillClientEmail);
+      setCreatedItem(null);
+      setError(null);
+      if (prefillClientName) setMode('manual');
+    }
+  }, [isOpen, prefillClientName, prefillClientEmail]);
+
   const handleAIExtract = async () => {
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ message: aiPrompt }),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'AI extraction failed.');
       if (data.proposal) {
         setClientName(data.proposal.client_name || '');
         setClientEmail(data.proposal.client_email || '');
         setTitle(data.proposal.service_name || '');
         setDescription(data.proposal.description || '');
-        setUnitPrice(data.proposal.unit_price || 450);
-        setQuantity(data.proposal.quantity || 1);
+        setUnitPrice(String(data.proposal.unit_price || 250));
+        setQuantity(String(data.proposal.quantity || 1));
+        setCurrency(data.proposal.currency || 'USD');
         if (data.proposal.due_date) setDueDate(data.proposal.due_date);
-        setMode('manual'); // switch to review form
+        setMode('manual');
+      } else {
+        setError('Could not detect payment fields in that message. Try specifying client and amount.');
       }
-    } catch (e) {
-      console.warn(e);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setAiLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, asDraft = false) => {
     e.preventDefault();
-    if (!clientName || unitPrice <= 0) return;
-    setSubmitting(true);
+    setError(null);
+    const priceNum = parseFloat(unitPrice);
+    const qtyNum = parseInt(quantity, 10) || 1;
+    if (!clientName.trim()) {
+      setError('Client name is required.');
+      return;
+    }
+    if (!Number.isFinite(priceNum) || priceNum <= 0) {
+      setError('Amount must be greater than 0.');
+      return;
+    }
 
+    setSubmitting(true);
     try {
       const res = await fetch('/api/payment-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          clientName,
-          clientEmail,
-          title: title || 'Professional Services',
-          description,
-          unitPrice,
-          quantity,
+          clientName: clientName.trim(),
+          clientEmail: clientEmail.trim(),
+          title: title.trim() || 'Professional Services',
+          description: description.trim(),
+          unitPrice: priceNum,
+          quantity: qtyNum,
+          currency,
           dueDate,
-          currency: 'USD',
+          status: asDraft ? 'DRAFT' : 'PENDING',
         }),
       });
-
       const data = await res.json();
-      if (data.request) {
-        setCreatedItem(data.request);
-        onCreated(data.request);
-      }
-    } catch (err) {
-      alert('Failed to create payment request.');
+      if (!res.ok) throw new Error(data.error || 'Failed to create payment request.');
+      setCreatedItem(data.request);
+      onCreated(data.request);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setSubmitting(false);
     }
@@ -120,255 +132,241 @@ export const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative border border-[#CCE2D2] space-y-5 animate-in fade-in">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 rounded-full"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Create Payment Request"
+      subtitle="Use natural language with AI or enter itemized details directly."
+      maxWidthClass="max-w-xl"
+    >
+      {createdItem ? (
+        <div className="space-y-5 text-center py-2">
+          <div className="w-12 h-12 rounded-2xl bg-[#16845B]/12 text-[#16845B] flex items-center justify-center mx-auto">
+            <Check className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-[#101C3A]">
+              {createdItem.requestNumber} Created
+            </h3>
+            <p className="text-xs text-[#68758C] mt-1">
+              {createdItem.clientName} • ${createdItem.totalAmount.toFixed(2)} {createdItem.currency} • Status: {createdItem.status}
+            </p>
+          </div>
 
-        {!createdItem ? (
-          <>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">
-                Create Payment Request
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Generate a verified PayPal Sandbox checkout link for your client.
-              </p>
+          <div className="bg-[#FAFBFF] border border-[#E7EAF1] rounded-xl p-3 flex items-center justify-between gap-2 text-xs">
+            <span className="font-mono text-[#18243A] truncate">
+              {window.location.origin}/pay/{createdItem.publicToken}
+            </span>
+            <button
+              onClick={copyUrl}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-[#EAF1FF] text-[#315CFF] font-semibold flex items-center gap-1 cursor-pointer"
+            >
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? 'Copied' : 'Copy'}</span>
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2.5 justify-center pt-2">
+            <a
+              href={`/pay/${createdItem.publicToken}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 bg-[#315CFF] text-white text-xs font-semibold px-4 py-2.5 rounded-xl"
+            >
+              <span>Open Checkout Page</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            <button
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl border border-[#E7EAF1] text-xs font-semibold text-[#18243A] cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {/* Tabs */}
+          <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAFBFF] rounded-xl border border-[#E7EAF1]">
+            <button
+              type="button"
+              onClick={() => setMode('ai')}
+              className={`py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                mode === 'ai' ? 'bg-[#315CFF] text-white shadow-xs' : 'text-[#68758C]'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>AI Quick Fill</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('manual')}
+              className={`py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                mode === 'manual' ? 'bg-[#315CFF] text-white shadow-xs' : 'text-[#68758C]'
+              }`}
+            >
+              Manual Details
+            </button>
+          </div>
+
+          {error && (
+            <div className="p-3 rounded-xl bg-[#D94C57]/10 border border-[#D94C57]/25 text-[#D94C57] text-xs font-medium flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
             </div>
+          )}
 
-            {/* Mode Segment Bar */}
-            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setMode('ai')}
-                className={`py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  mode === 'ai'
-                    ? 'bg-white text-[#174B38] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Bot className="w-3.5 h-3.5 text-[#10B981]" />
-                <span>Create with AI</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMode('manual')}
-                className={`py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  mode === 'manual'
-                    ? 'bg-white text-[#174B38] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>Manual Form</span>
-              </button>
-            </div>
-
-            {/* Mode 1: AI Prompt */}
-            {mode === 'ai' && (
-              <div className="space-y-4">
-                <div className="p-3 bg-[#FAF9F5] rounded-xl border border-slate-200 text-xs text-slate-600 leading-relaxed">
-                  Describe what you need in natural language. Gemini 3.8 will automatically extract the client name, deliverable title, pricing, and due date.
-                </div>
-
-                <textarea
-                  rows={4}
-                  placeholder="e.g. 'Create a payment request for Marcus for $1,020 for automated billing integration due in 14 days'"
-                  value={aiPrompt}
-                  onChange={e => setAiPrompt(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:bg-white focus:border-[#174B38] focus:outline-none"
-                />
-
-                <button
-                  type="button"
-                  onClick={handleAIExtract}
-                  disabled={aiLoading || !aiPrompt.trim()}
-                  className="w-full bg-[#174B38] hover:bg-[#11382A] text-white py-3 rounded-xl font-bold text-xs shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer active:scale-95"
-                >
-                  {aiLoading ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Extracting with Gemini...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 text-[#34D399]" />
-                      <span>Extract & Populate Details →</span>
-                    </>
-                  )}
-                </button>
+          {mode === 'ai' ? (
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-[#EAF1FF] border border-[#315CFF]/15 text-xs text-[#101C3A] flex items-start gap-2.5">
+                <Bot className="w-4 h-4 text-[#315CFF] shrink-0 mt-0.5" />
+                <span>
+                  Describe your payment request in plain English. You’ll review and confirm the extracted fields before creating the link.
+                </span>
               </div>
-            )}
-
-            {/* Mode 2: Manual / Review Form */}
-            {mode === 'manual' && (
-              <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-600 font-semibold mb-1">Client Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Alex Morgan"
-                      value={clientName}
-                      onChange={e => setClientName(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:border-[#174B38] focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-600 font-semibold mb-1">Client Email</label>
-                    <input
-                      type="email"
-                      placeholder="alex@northstar.io"
-                      value={clientEmail}
-                      onChange={e => setClientEmail(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:border-[#174B38] focus:outline-none"
-                    />
-                  </div>
-                </div>
-
+              <textarea
+                rows={3}
+                value={aiPrompt}
+                onChange={e => setAiPrompt(e.target.value)}
+                placeholder='e.g. "Bill Alex Morgan $450 for website redesign due in 7 days"'
+                className="w-full bg-[#FAFBFF] border border-[#E7EAF1] focus:border-[#315CFF] rounded-xl p-3.5 text-sm focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleAIExtract}
+                disabled={aiLoading || !aiPrompt.trim()}
+                className="w-full bg-[#315CFF] hover:bg-[#2347d6] text-white text-xs font-bold py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {aiLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                <span>{aiLoading ? 'Extracting details...' : 'Extract & Review Proposal'}</span>
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={e => handleSubmit(e, false)} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-600 font-semibold mb-1">Service / Title *</label>
+                  <label className="block font-semibold text-[#18243A] mb-1">Client Name *</label>
                   <input
                     type="text"
                     required
-                    placeholder="Website Development Milestone"
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:border-[#174B38] focus:outline-none font-semibold"
+                    value={clientName}
+                    onChange={e => setClientName(e.target.value)}
+                    placeholder="Alex Morgan"
+                    className="w-full bg-[#FAFBFF] border border-[#E7EAF1] focus:border-[#315CFF] rounded-xl px-3 py-2.5 focus:outline-none"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-slate-600 font-semibold mb-1">Description</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Deliverable specifications..."
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:border-[#174B38] focus:outline-none"
+                  <label className="block font-semibold text-[#18243A] mb-1">Client Email</label>
+                  <input
+                    type="email"
+                    value={clientEmail}
+                    onChange={e => setClientEmail(e.target.value)}
+                    placeholder="client@company.com"
+                    className="w-full bg-[#FAFBFF] border border-[#E7EAF1] focus:border-[#315CFF] rounded-xl px-3 py-2.5 focus:outline-none"
                   />
                 </div>
+              </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-slate-600 font-semibold mb-1">Unit Price ($)</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      step="any"
-                      value={unitPrice}
-                      onChange={e => setUnitPrice(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:border-[#174B38] focus:outline-none font-bold"
-                    />
-                  </div>
+              <div>
+                <label className="block font-semibold text-[#18243A] mb-1">Service Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  placeholder="Website Development Milestone"
+                  className="w-full bg-[#FAFBFF] border border-[#E7EAF1] focus:border-[#315CFF] rounded-xl px-3 py-2.5 focus:outline-none"
+                />
+              </div>
 
-                  <div>
-                    <label className="block text-slate-600 font-semibold mb-1">Quantity</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={quantity}
-                      onChange={e => setQuantity(parseInt(e.target.value, 10) || 1)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:border-[#174B38] focus:outline-none font-bold"
-                    />
-                  </div>
+              <div>
+                <label className="block font-semibold text-[#18243A] mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Deliverables included in this payment request..."
+                  className="w-full bg-[#FAFBFF] border border-[#E7EAF1] focus:border-[#315CFF] rounded-xl px-3 py-2.5 focus:outline-none"
+                />
+              </div>
 
-                  <div>
-                    <label className="block text-slate-600 font-semibold mb-1">Due Date</label>
-                    <input
-                      type="date"
-                      value={dueDate}
-                      onChange={e => setDueDate(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:border-[#174B38] focus:outline-none"
-                    />
-                  </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="block font-semibold text-[#18243A] mb-1">Unit Price *</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    value={unitPrice}
+                    onChange={e => setUnitPrice(e.target.value)}
+                    className="w-full bg-[#FAFBFF] border border-[#E7EAF1] focus:border-[#315CFF] rounded-xl px-3 py-2.5 focus:outline-none"
+                  />
                 </div>
+                <div>
+                  <label className="block font-semibold text-[#18243A] mb-1">Qty</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={e => setQuantity(e.target.value)}
+                    className="w-full bg-[#FAFBFF] border border-[#E7EAF1] focus:border-[#315CFF] rounded-xl px-3 py-2.5 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[#18243A] mb-1">Currency</label>
+                  <select
+                    value={currency}
+                    onChange={e => setCurrency(e.target.value)}
+                    className="w-full bg-[#FAFBFF] border border-[#E7EAF1] focus:border-[#315CFF] rounded-xl px-3 py-2.5 focus:outline-none"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="CAD">CAD</option>
+                    <option value="AUD">AUD</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-[#18243A] mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={e => setDueDate(e.target.value)}
+                    className="w-full bg-[#FAFBFF] border border-[#E7EAF1] focus:border-[#315CFF] rounded-xl px-3 py-2.5 focus:outline-none"
+                  />
+                </div>
+              </div>
 
-                {/* Total */}
-                <div className="p-3 bg-[#FAF9F5] rounded-xl flex items-center justify-between font-bold text-slate-800">
-                  <span>Total Amount Due:</span>
-                  <span className="text-base text-[#174B38] tabular-nums">
-                    ${(unitPrice * quantity).toFixed(2)} USD
+              <div className="flex items-center justify-between pt-3 border-t border-[#E7EAF1]">
+                <div className="text-xs text-[#68758C]">
+                  Total:{' '}
+                  <span className="font-extrabold text-[#101C3A] text-sm">
+                    ${((parseFloat(unitPrice) || 0) * (parseInt(quantity, 10) || 1)).toFixed(2)} {currency}
                   </span>
                 </div>
-
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={onClose}
-                    className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-semibold"
+                    disabled={submitting}
+                    onClick={e => handleSubmit(e, true)}
+                    className="px-3.5 py-2.5 rounded-xl border border-[#E7EAF1] font-semibold text-[#68758C] hover:bg-slate-50 cursor-pointer"
                   >
-                    Cancel
+                    Save Draft
                   </button>
-
                   <button
                     type="submit"
-                    disabled={submitting || !clientName}
-                    className="bg-[#174B38] hover:bg-[#11382A] text-white px-6 py-2.5 rounded-xl font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer active:scale-95"
+                    disabled={submitting}
+                    className="px-4 py-2.5 rounded-xl bg-[#315CFF] hover:bg-[#2347d6] text-white font-bold cursor-pointer disabled:opacity-50"
                   >
-                    {submitting ? 'Creating...' : 'Create & Generate Link'}
+                    {submitting ? 'Creating...' : 'Create Payment Request'}
                   </button>
                 </div>
-              </form>
-            )}
-          </>
-        ) : (
-          /* Success Result View */
-          <div className="space-y-4 text-center py-2">
-            <div className="w-14 h-14 rounded-full bg-[#E7F1E9] text-[#10B981] flex items-center justify-center mx-auto">
-              <Check className="w-8 h-8" />
-            </div>
-
-            <h3 className="text-xl font-bold text-slate-900">
-              Payment Request Created!
-            </h3>
-            <p className="text-xs text-slate-500">
-              Invoice #{createdItem.requestNumber} for <strong>{createdItem.clientName}</strong> (${createdItem.totalAmount.toFixed(2)} USD) is live.
-            </p>
-
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-left space-y-1">
-              <div className="text-[10px] text-slate-400 font-semibold uppercase">Public Customer Checkout Link</div>
-              <div className="font-mono text-xs text-slate-800 break-all">
-                {window.location.origin}/pay/{createdItem.publicToken}
               </div>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={copyUrl}
-                className="flex-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs"
-              >
-                {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? 'Copied!' : 'Copy Link'}</span>
-              </button>
-
-              <a
-                href={`/pay/${createdItem.publicToken}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 bg-[#174B38] hover:bg-[#11382A] text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow"
-              >
-                <span>Open Checkout</span>
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            </div>
-
-            <button
-              onClick={onClose}
-              className="text-xs text-slate-500 hover:text-slate-800 mt-2 block mx-auto underline"
-            >
-              Done & Return
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+            </form>
+          )}
+        </div>
+      )}
+    </Modal>
   );
 };
