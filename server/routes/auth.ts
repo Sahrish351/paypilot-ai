@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import { Router, Request, Response } from 'express';
 import { db } from '../db.ts';
-import { authMiddleware, SESSION_COOKIE_NAME } from '../middleware/auth.ts';
-import { hashPassword, signSessionToken, verifyPassword } from '../utils/crypto.ts';
+import { authMiddleware, extractSessionToken, SESSION_COOKIE_NAME } from '../middleware/auth.ts';
+import { hashPassword, signSessionToken, verifyPassword, verifySessionToken } from '../utils/crypto.ts';
 import { User } from '../types.ts';
 
 const router = Router();
@@ -149,6 +149,21 @@ router.post('/reset-password', (req: Request, res: Response) => {
   });
 
   res.json({ message: 'Password updated successfully. You can now sign in.' });
+});
+
+router.get('/session', (req: Request, res: Response) => {
+  const token = extractSessionToken(req);
+  if (!token) {
+    res.json({ authenticated: false, user: null });
+    return;
+  }
+  const payload = verifySessionToken(token);
+  const user = payload ? db.findUserById(payload.userId) : undefined;
+  if (!user) {
+    res.json({ authenticated: false, user: null });
+    return;
+  }
+  res.json({ authenticated: true, user: sanitizeUser(user) });
 });
 
 router.get('/me', authMiddleware, (req: Request, res: Response) => {

@@ -288,19 +288,25 @@ function fallbackParser(
   const isoDateMatch = userMessage.match(/\b(\d{4}-\d{2}-\d{2})\b/);
   const amountMatch = userMessage.match(/(?:\$|usd|eur|gbp|cad|aud)?\s*(\d[\d,]*(?:\.\d{1,2})?)\s*(?:usd|eur|gbp|cad|aud|dollars)?/i);
 
-  const hasPaymentIntent =
+  const isNewPaymentCommand =
     lower.includes('create') ||
+    lower.includes('bill ') ||
+    lower.includes('invoice ') ||
+    lower.includes('charge ') ||
+    lower.includes('payment request');
+
+  const baseProposal = isNewPaymentCommand ? null : activeProposal || null;
+
+  const hasPaymentIntent =
+    isNewPaymentCommand ||
     lower.includes('payment') ||
-    lower.includes('invoice') ||
-    lower.includes('bill') ||
     lower.includes('request') ||
-    lower.includes('charge') ||
     lower.includes('$') ||
-    Boolean(activeProposal && (emailMatch || isoDateMatch || lower.includes('due') || lower.includes('email') || lower.includes('note')));
+    Boolean(baseProposal && (emailMatch || isoDateMatch || lower.includes('due') || lower.includes('email') || lower.includes('note')));
 
   if (hasPaymentIntent) {
-    let clientName = activeProposal?.client_name && activeProposal.client_name !== 'Unnamed Client'
-      ? activeProposal.client_name
+    let clientName = baseProposal?.client_name && baseProposal.client_name !== 'Unnamed Client'
+      ? baseProposal.client_name
       : '';
 
     const forPersonMatch = userMessage.match(/(?:for|to|client)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
@@ -311,23 +317,30 @@ function fallbackParser(
       }
     }
 
-    // Extract service description after "for <service>"
-    let serviceName = activeProposal?.service_name || '';
-    const serviceMatch = userMessage.match(/\bfor\s+(?:a\s+|an\s+)?([a-zA-Z0-9\s,&-]{4,60})(?:\s+due|\s+with|\s*$)/i);
-    if (serviceMatch && serviceMatch[1] && serviceMatch[1].trim().toLowerCase() !== clientName.toLowerCase()) {
-      const cleanedService = serviceMatch[1].replace(/^\$?\d+[\d,.]*\s*(usd|dollars)?\s*(for\s+)?/i, '').trim();
-      if (cleanedService.length >= 3 && !cleanedService.includes('@')) {
-        serviceName = cleanedService.charAt(0).toUpperCase() + cleanedService.slice(1);
+    // Extract service description after the final "for <service>" clause
+    let serviceName = baseProposal?.service_name || '';
+    const forClauses = Array.from(
+      userMessage.matchAll(/\bfor\s+(?:a\s+|an\s+)?([^,.!?]+?)(?=\s+\bfor\b|\s+\bdue\b|\s+\bwith\b|\s*[,.!?]|$)/gi)
+    );
+    for (const m of forClauses) {
+      const rawClause = (m[1] || '').trim();
+      if (
+        rawClause &&
+        rawClause.toLowerCase() !== clientName.toLowerCase() &&
+        !/^\$?\d/.test(rawClause) &&
+        !rawClause.includes('@')
+      ) {
+        serviceName = rawClause.charAt(0).toUpperCase() + rawClause.slice(1);
       }
     }
 
-    let unitPrice = activeProposal?.unit_price || 0;
+    let unitPrice = baseProposal?.unit_price || 0;
     if (userMessage.includes('$') || lower.includes('usd') || lower.includes('dollars') || lower.includes('for ')) {
       const explicitCurrencyAmount = userMessage.match(/\$\s*(\d[\d,]*(?:\.\d{1,2})?)|(\d[\d,]*(?:\.\d{1,2})?)\s*(?:usd|eur|gbp|dollars)/i);
       const picked = explicitCurrencyAmount?.[1] || explicitCurrencyAmount?.[2];
       if (picked) {
         unitPrice = parseFloat(picked.replace(/,/g, ''));
-      } else if (!activeProposal && amountMatch?.[1]) {
+      } else if (!baseProposal && amountMatch?.[1]) {
         const parsed = parseFloat(amountMatch[1].replace(/,/g, ''));
         if (parsed > 0 && !userMessage.includes(`${parsed} days`)) {
           unitPrice = parsed;
@@ -335,7 +348,7 @@ function fallbackParser(
       }
     }
 
-    let dueDate = activeProposal?.due_date || '';
+    let dueDate = baseProposal?.due_date || '';
     if (isoDateMatch) {
       dueDate = isoDateMatch[1];
     } else {
@@ -354,13 +367,13 @@ function fallbackParser(
     const proposal = validateAndSanitizeProposal(
       {
         client_name: clientName,
-        client_email: emailMatch?.[1] || activeProposal?.client_email,
+        client_email: emailMatch?.[1] || baseProposal?.client_email,
         service_name: serviceName || 'Professional Services',
         description:
-          activeProposal?.description && activeProposal.service_name === serviceName
-            ? activeProposal.description
+          baseProposal?.description && baseProposal.service_name === serviceName
+            ? baseProposal.description
             : `Deliverables for ${serviceName || 'requested project milestone'} for ${clientName || 'client'}.`,
-        quantity: activeProposal?.quantity || 1,
+        quantity: baseProposal?.quantity || 1,
         unit_price: unitPrice,
         currency: 'USD',
         due_date: dueDate,
@@ -370,16 +383,16 @@ function fallbackParser(
 
     const missingCount = proposal.missing_fields?.length || 0;
     const summaryParts = [
-      `• **Client:** ${proposal.client_name}${proposal.client_email ? ` (${proposal.client_email})` : ''}`,
-      `• **Amount:** ${proposal.unit_price > 0 ? `$${proposal.total_amount.toFixed(2)} ${proposal.currency}` : 'Not specified'}`,
-      `• **Service:** ${proposal.service_name}`,
-      `• **Due Date:** ${proposal.due_date}`,
+      `• Client: ${proposal.client_name}${proposal.client_email ? ` (${proposal.client_email})` : ''}`,
+      `• Amount: ${proposal.unit_price > 0 ? `$${proposal.total_amount.toFixed(2)} ${proposal.currency}` : 'Not specified'}`,
+      `• Service: ${proposal.service_name}`,
+      `• Due Date: ${proposal.due_date}`,
     ];
 
     const clarificationBlock =
       missingCount > 0 && proposal.clarification_questions?.length
         ? `\n\nBefore you approve, could you clarify:\n${proposal.clarification_questions.map(q => `• ${q}`).join('\n')}`
-        : `\n\nReview the structured proposal panel on the right and click **Approve & Create Request** when ready.`;
+        : `\n\nReview the structured proposal panel on the right and click Approve & Create Payment Request when ready.`;
 
     return {
       aiMode: 'heuristic-fallback',

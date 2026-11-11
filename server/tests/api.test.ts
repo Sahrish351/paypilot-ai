@@ -132,6 +132,7 @@ test('Registration, tenant isolation, client CRUD, AI parsing, and payment reque
   assert.ok(aiJson.proposal);
   assert.equal(aiJson.proposal.unit_price, 250);
   assert.equal(aiJson.proposal.total_amount, 250);
+  assert.equal(aiJson.proposal.service_name, 'Website development');
   assert.ok(Array.isArray(aiJson.proposal.missing_fields));
 
   // Create payment request
