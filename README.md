@@ -88,7 +88,34 @@ PayPilot AI unifies conversational payment drafting, strict human-in-the-loop ap
 
 ---
 
-## 5. System Architecture
+## 5. System Architecture & Folder Structure
+
+PayPilot AI is built as a **single integrated full-stack Node.js application** (`server.ts`):
+- In **development** (`npm run dev`), Express serves `/api/*` endpoints and mounts Vite middleware on port `3000` (only **one terminal** is required).
+- In **production** (`npm run build` + `npm start`), Express serves the static `dist/` bundle alongside `/api/*` on port `3000`.
+
+```text
+paypilot-ai/
+├── server.ts                  # Integrated Express + Vite entry point, CORS, rate limiters
+├── server/
+│   ├── db.ts                  # File-backed JSON Database class (auto-seeds data/store.json)
+│   ├── types.ts               # Backend TypeScript interfaces
+│   ├── middleware/auth.ts     # Strict HMAC-SHA256 session verification (401 on missing/invalid)
+│   ├── utils/crypto.ts        # Salted scrypt password hashing & token signing
+│   ├── services/
+│   │   ├── gemini.ts          # Google Gemini API + timeout + JSON validation + fallback parser
+│   │   └── paypal.ts          # PayPal Sandbox Orders API v2 + capture verification
+│   ├── routes/                # auth, ai, clients, dashboard, paymentRequests, payments, reports
+│   └── tests/api.test.ts      # Automated backend API & isolation tests (node:test)
+├── src/
+│   ├── App.tsx                # React Router v7 routes & global modals
+│   ├── context/AuthContext.tsx
+│   ├── components/            # BrandLogo, CreatePaymentModal, layout/, ui/
+│   └── pages/                 # 16 public, auth, onboarding, workspace & checkout pages
+├── docs/screenshots/          # Genuine application screenshots
+├── .env.example               # Environment variable template
+└── package.json               # Scripts: dev, start, build, lint, test
+```
 
 ```mermaid
 flowchart LR
@@ -127,43 +154,58 @@ flowchart LR
 
 ---
 
-## 7. Installation and Setup
+## 7. Installation and Windows / Local Setup
 
 ### Prerequisites
 - Node.js 20+ and npm 10+
 
-### Step-by-Step Setup
+### Windows (PowerShell) Setup
+
+Because frontend and backend run inside one integrated Express + Vite server (`server.ts`), you only need **one terminal**.
 
 1. **Clone the repository**
-   ```bash
+   ```powershell
    git clone https://github.com/Sahrish351/paypilot-ai.git
    cd paypilot-ai
    ```
 
 2. **Install dependencies**
-   ```bash
+   ```powershell
    npm install
    ```
 
-3. **Configure environment variables**
-   ```bash
-   cp .env.example .env
+3. **Create `.env` from `.env.example`**
+   ```powershell
+   Copy-Item .env.example .env
    ```
-   Update `.env` with your `AUTH_SECRET`, optional `GEMINI_API_KEY`, and optional PayPal Sandbox credentials (`PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`).
+   *(macOS / Linux equivalent: `cp .env.example .env`)*
 
-4. **Run in development mode (Express + Vite middleware on port 3000)**
-   ```bash
+   Open `.env` and set a strong `AUTH_SECRET`, plus optional `GEMINI_API_KEY` and PayPal Sandbox keys (`PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`).
+
+4. **Database initialization**
+   No external database server or migration command is required. On first startup, `server/db.ts` automatically creates `data/store.json` with a seeded demo account (`john@example.com` / `demo1234`).
+   - **Backup**: copy `data\store.json`.
+   - **Reset to clean defaults**: stop the server and run `Remove-Item data\store.json`, then restart.
+
+5. **Run the integrated application (development)**
+   ```powershell
    npm run dev
    ```
    Open [http://localhost:3000](http://localhost:3000).
 
-5. **Build and run in production mode**
-   ```bash
+6. **Run tests, typecheck, and production build**
+   ```powershell
+   npm test
+   npm run lint
    npm run build
-   NODE_ENV=production npm start
    ```
 
-> **Demo Account Credentials:** `john@example.com` / `demo1234` (also available via the **Sign In with Demo Account** button on `/login`).
+7. **Run the production build (PowerShell)**
+   ```powershell
+   $env:NODE_ENV="production"; npm start
+   ```
+
+> **Demo Account Credentials:** `john@example.com` / `demo1234` (verified via real `scrypt` password hashing; also accessible via the **Sign In with Demo Account** button on `/login`). Newly registered users start with an empty, isolated workspace.
 
 ---
 
@@ -177,7 +219,7 @@ See [`.env.example`](.env.example):
 | `APP_URL` | No | Public base URL for PayPal return/cancel URLs (default `http://localhost:3000`) |
 | `AUTH_SECRET` | Recommended | Secret string used to sign HMAC-SHA256 session tokens |
 | `GEMINI_API_KEY` | Optional | Google Gemini API key; if omitted, AI Agent runs in transparent heuristic-fallback mode |
-| `GEMINI_MODEL` | No | Gemini model identifier (defaults to `gemini-2.5-flash`) |
+| `GEMINI_MODEL` | No | Gemini model identifier (defaults to `gemini-3-flash-preview`) |
 | `PAYPAL_CLIENT_ID` | Optional | PayPal Developer Sandbox App Client ID (required for live Sandbox checkout) |
 | `PAYPAL_CLIENT_SECRET` | Optional | PayPal Developer Sandbox App Secret (required for server-side order & capture) |
 | `PAYPAL_BASE_URL` | No | PayPal API base URL (defaults to `https://api-m.sandbox.paypal.com`) |
@@ -241,7 +283,7 @@ Stored in `data/store.json` (and configurable via `PAYPILOT_DB_FILE` for isolate
 ## 12. AI Workflow
 
 1. User enters natural language in `/ai-agent` (e.g., `"Create a payment request for John for $250 for website development."`).
-2. Backend sends prompt + system guardrails to Gemini (`gemini-2.5-flash`) requesting structured JSON—or runs the deterministic fallback parser when `GEMINI_API_KEY` is unconfigured.
+2. Backend sends prompt + system guardrails to Gemini (`gemini-3-flash-preview`) requesting structured JSON—or runs the deterministic fallback parser when `GEMINI_API_KEY` is unconfigured.
 3. Server validates and clamps `quantity` (`1..10000`), `unit_price` (`> 0`), recalculates `total_amount = quantity * unit_price`, validates currency (`USD`, `EUR`, `GBP`, `CAD`, `AUD`), and detects missing fields (`client_email`, `due_date`, `amount`, `service_name`).
 4. AI never executes payments autonomously; user must edit/confirm and click **Approve & Create Payment Request**.
 
