@@ -1,0 +1,8 @@
+{
+  "name": "PayPilot AI - Your Intelligent Payment Companion",
+  "description": "AI-powered payment agent and smart financial companion with real PayPal Developer Sandbox checkout, automated invoicing, and revenue intelligence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

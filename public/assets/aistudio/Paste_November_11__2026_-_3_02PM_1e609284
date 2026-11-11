@@ -1,0 +1,2572 @@
+# PAYPILOT AI
+## Complete Product Requirements Document (PRD), Technical Specification & Master Development Prompt
+
+**Hackathon:** Build What's Next with PayPal and AI  
+**Platform:** Web Application (Responsive SaaS)  
+**Product Category:** AI FinTech / Agentic Commerce / Payment Automation  
+**Product Version:** 1.0  
+**Development Priority:** Hackathon-ready, production-minded MVP  
+**AI Platform:** Google Gemini API  
+**Payment Platform:** PayPal Developer Sandbox  
+**Frontend:** React, TypeScript, Vite  
+**Backend:** Node.js, Express.js, TypeScript  
+**Database:** MongoDB Atlas with Mongoose  
+
+---
+
+# PART 1 — MASTER INSTRUCTIONS FOR GOOGLE AI STUDIO
+
+## 1.1 Your Role
+
+Act as a senior product architect, award-winning UI/UX designer, senior full-stack engineer, AI engineer, payment integration specialist, database architect, and QA engineer.
+
+You are responsible for designing and developing a complete, functional, polished, responsive fintech SaaS application called **PayPilot AI**.
+
+Do not approach this as a simple demonstration project.
+
+Build a coherent product with a complete frontend, backend, database, AI integration, PayPal Sandbox integration, authentication, transaction management, and professional user experience.
+
+Your goal is to create a project that demonstrates exceptional execution, meaningful innovation, practical business impact, and genuine use of PayPal and AI.
+
+## 1.2 Non-Negotiable Development Rules
+
+Follow these requirements throughout development:
+
+1. Build real functionality, not just static UI.
+2. Every visible button must have a working action.
+3. Every form must have validation and appropriate feedback.
+4. Every navigation item must lead to a working page or section.
+5. Every API integration must have proper success and error handling.
+6. Every payment must use PayPal Sandbox.
+7. Never pretend that a payment succeeded without a verified PayPal response.
+8. Never expose API keys, Client Secrets or database credentials in frontend code.
+9. Never use hardcoded transaction data as real user financial data.
+10. Never use localStorage as the source of truth for authentication, payments or financial records.
+11. Do not create placeholder pages that appear functional but are not.
+12. Do not add buttons that do nothing.
+13. Do not silently ignore API failures.
+14. Do not create fake charts or misleading financial statistics.
+15. Do not replace real integrations with mock implementations.
+16. Do not remove working functionality while improving the UI.
+17. Do not unnecessarily simplify the requested product.
+18. Keep the code modular, readable, maintainable and properly structured.
+19. Ensure all screens work on mobile, tablet, laptop and desktop.
+20. Test the complete payment journey before declaring the project finished.
+
+If credentials or external services are unavailable, implement the real integration code, clearly identify the missing configuration and provide setup instructions. Never represent an untested integration as verified.
+
+## 1.3 Development Strategy
+
+Work in the following order:
+
+**Phase A:** Project architecture and initial setup.
+
+**Phase B:** Design system and frontend application.
+
+**Phase C:** Backend APIs, database and authentication.
+
+**Phase D:** Gemini AI agent integration.
+
+**Phase E:** PayPal Sandbox integration.
+
+**Phase F:** Dashboard, payment management and analytics.
+
+**Phase G:** Responsive optimization, testing and bug fixing.
+
+**Phase H:** Documentation and hackathon submission preparation.
+
+Do not stop after generating the initial interface. Continue until all required functionality is implemented and tested.
+
+If the environment cannot complete everything in one generation, work incrementally. Preserve completed work and continue from the existing codebase instead of rebuilding or deleting working components.
+
+---
+
+# PART 2 — PRODUCT VISION AND OVERVIEW
+
+## 2.1 Product Name
+
+**PayPilot AI**
+
+## 2.2 Tagline
+
+**Your AI Payment Agent. From Conversation to Completed Payment.**
+
+Alternative marketing statement:
+
+"Smarter payments. Faster collections. AI-powered business finance."
+
+## 2.3 Product Description
+
+PayPilot AI is an intelligent payment management platform that helps freelancers, independent professionals, agencies and small businesses create payment requests, collect payments, understand financial activity and manage client communication through an AI-powered payment assistant.
+
+Users can describe payment requirements using natural language.
+
+The AI agent interprets their instructions, extracts relevant information, prepares a structured payment proposal, generates professional payment descriptions and assists with payment-related tasks.
+
+After the user reviews and approves the payment details, PayPilot AI uses the PayPal Developer Platform to create a Sandbox payment order and provide a secure checkout experience.
+
+Once the customer approves the transaction, PayPal processes the Sandbox payment and the backend verifies and records its result.
+
+The platform also provides payment analytics, transaction history, client management, AI-generated financial explanations and intelligent follow-up suggestions.
+
+## 2.4 Problem Statement
+
+Freelancers and small businesses frequently manage payments manually.
+
+Common challenges include:
+
+- Preparing payment requests manually.
+- Calculating service charges and totals.
+- Writing professional payment messages.
+- Tracking pending and completed payments.
+- Following up with clients.
+- Understanding revenue performance.
+- Switching between different applications.
+- Spending valuable time on repetitive administrative work.
+
+Existing payment tools may process transactions effectively but often leave business owners responsible for much of the surrounding administrative work.
+
+PayPilot AI addresses this problem by combining intelligent AI assistance with an actual payment-processing workflow.
+
+## 2.5 Proposed Solution
+
+PayPilot AI combines two important technologies:
+
+**Artificial Intelligence**
+
+- Natural-language payment understanding.
+- Structured payment information extraction.
+- AI-generated invoice descriptions.
+- Professional client communication.
+- Revenue explanations.
+- Payment follow-up recommendations.
+- Conversational financial assistance.
+
+**PayPal Developer Platform**
+
+- PayPal REST API.
+- PayPal Orders API v2.
+- PayPal JavaScript SDK.
+- Sandbox checkout.
+- Order approval.
+- Payment capture.
+- Transaction status verification.
+
+The combination creates an intelligent payment workflow instead of simply adding a chatbot to an ordinary payment dashboard.
+
+## 2.6 Target Audience
+
+Primary users:
+
+1. Freelancers.
+2. Software developers.
+3. Graphic designers.
+4. Digital marketing professionals.
+5. Independent consultants.
+6. Small creative agencies.
+7. Web development agencies.
+8. Small service-based businesses.
+
+## 2.7 Main Product Objectives
+
+- Reduce the time required to prepare payment requests.
+- Simplify payment collection.
+- Provide an intelligent conversational payment interface.
+- Improve payment tracking.
+- Help businesses understand their revenue.
+- Automate repetitive administrative tasks.
+- Demonstrate meaningful AI-assisted commerce.
+- Provide a secure PayPal Sandbox checkout experience.
+
+## 2.8 Unique Selling Proposition
+
+**PayPilot AI is not another payment dashboard. It is an AI agent that helps businesses move from a natural-language payment request to a verified payment transaction.**
+
+---
+
+# PART 3 — PRODUCT FUNCTIONALITY
+
+## 3.1 Core Feature Modules
+
+The application must contain the following modules:
+
+| Module | Priority |
+|---|---|
+| Authentication and onboarding | P0 |
+| Main dashboard | P0 |
+| AI Payment Agent | P0 |
+| AI payment information extraction | P0 |
+| Smart payment request creation | P0 |
+| PayPal Sandbox checkout | P0 |
+| Payment approval and capture | P0 |
+| Transaction history | P0 |
+| Payment request management | P0 |
+| Client management | P1 |
+| AI revenue insights | P1 |
+| Smart follow-up assistant | P1 |
+| Public payment page | P0 |
+| Settings and profile management | P1 |
+| Advanced analytics | P2 |
+| Exportable reports | P2 |
+
+P0 features are essential for the hackathon submission.
+
+P1 features should be completed after the core payment flow works.
+
+P2 features are optional enhancements and must not delay the submission.
+
+---
+
+# PART 4 — COMPLETE USER JOURNEY
+
+## 4.1 First-Time User Journey
+
+1. User visits the PayPilot AI landing page.
+2. User explores the product.
+3. User clicks Get Started.
+4. User registers an account.
+5. Backend validates the registration.
+6. User signs in.
+7. User completes onboarding.
+8. User enters the main dashboard.
+9. User sees an introduction to the AI Payment Agent.
+10. User creates their first payment request.
+11. AI extracts payment details.
+12. User reviews and approves the proposal.
+13. PayPal Sandbox creates an order.
+14. Customer opens the public payment page.
+15. Customer approves payment using a Sandbox buyer account.
+16. Backend captures the order.
+17. PayPilot verifies the PayPal response.
+18. Payment record is updated.
+19. Dashboard statistics are refreshed.
+20. AI can explain the resulting payment activity.
+
+## 4.2 Example User Scenario
+
+A freelance developer has completed a business website.
+
+They open PayPilot AI and enter:
+
+"Create a payment request for Alex for a completed business website project. The total amount is 450 USD. The payment is due in seven days. Write a professional description."
+
+The AI should produce a structured proposal:
+
+- Client: Alex
+- Service: Business Website Development
+- Amount: $450.00
+- Currency: USD
+- Due date: Seven days from the current date
+- Description: Professional website development service
+- Payment status: Draft
+
+The application must display a review screen.
+
+The user can edit the details before approving.
+
+Once approved, the backend creates a PayPal Sandbox order.
+
+The customer receives or opens a unique payment URL.
+
+After completing checkout, the application records the verified payment result.
+
+The dashboard updates accordingly.
+
+IMPORTANT: AI must never directly charge a customer or capture a payment without explicit user authorization.
+
+---
+
+# PART 5 — COMPLETE PAGE-BY-PAGE REQUIREMENTS
+
+# PAGE 1 — PUBLIC LANDING PAGE
+
+Route: `/`
+
+Purpose: Introduce PayPilot AI and convert visitors into registered users.
+
+### 1. Navigation Bar
+
+Include:
+
+- PayPilot AI logo.
+- Product.
+- Features.
+- How It Works.
+- Security.
+- Pricing.
+- Sign In.
+- Get Started button.
+
+Interactions:
+
+- Logo navigates to the homepage.
+- Product scrolls to product overview.
+- Features scrolls to features.
+- How It Works scrolls to workflow.
+- Security scrolls to security section.
+- Pricing scrolls to pricing section.
+- Sign In opens login.
+- Get Started opens registration.
+
+Use smooth scrolling.
+
+On mobile, provide a functional hamburger navigation menu.
+
+### 2. Hero Section
+
+Headline:
+
+"Your Payments Deserve a Smarter Assistant."
+
+Supporting text:
+
+"Create payment requests, collect money and understand your business finances through one intelligent AI-powered payment platform."
+
+Primary CTA:
+
+"Start Managing Payments"
+
+Secondary CTA:
+
+"Explore How It Works"
+
+Include:
+
+- Premium dashboard preview.
+- AI conversation preview.
+- Payment status visualization.
+- Subtle background shapes.
+- Elegant decorative elements.
+
+The dashboard preview must reflect the actual application design.
+
+### 3. Trust and Technology Section
+
+Show:
+
+- Powered by Google Gemini.
+- PayPal Sandbox Integration.
+- Secure Payment Workflow.
+- Intelligent Business Assistance.
+
+Do not display false certifications or security claims.
+
+### 4. Problem and Solution Section
+
+Explain:
+
+- Manual payment preparation.
+- Difficult payment tracking.
+- Repetitive client communication.
+- Limited financial insights.
+
+Then show how PayPilot AI addresses each problem.
+
+### 5. Feature Showcase
+
+Create feature cards for:
+
+1. AI Payment Agent.
+2. Smart Payment Requests.
+3. Secure PayPal Checkout.
+4. Real-Time Transaction Tracking.
+5. AI Revenue Insights.
+6. Smart Follow-Up Assistant.
+
+Each card must include:
+
+- Icon.
+- Title.
+- Short explanation.
+- Appropriate visual preview.
+
+### 6. How It Works
+
+Display a five-step process:
+
+1. Describe your payment.
+2. AI understands your instructions.
+3. Review and approve.
+4. PayPal processes the payment.
+5. Track and understand your revenue.
+
+### 7. Product Preview
+
+Show a professional dashboard preview with:
+
+- Revenue statistics.
+- Recent transactions.
+- AI assistant.
+- Payment requests.
+
+### 8. Security Section
+
+Explain the application's security approach accurately:
+
+- Backend-managed credentials.
+- Authenticated dashboard.
+- Payment approval.
+- PayPal Sandbox testing.
+- Server-side transaction verification.
+
+Do not claim PCI DSS certification or compliance unless independently established.
+
+### 9. FAQ Section
+
+Questions:
+
+- What is PayPilot AI?
+- How does the AI Payment Agent work?
+- Does PayPilot process real money?
+- How does PayPal Sandbox work?
+- Can I edit AI-generated payment requests?
+- Do I need a PayPal account?
+- How is my information protected?
+
+### 10. Footer
+
+Include:
+
+- Logo and description.
+- Product links.
+- Features.
+- Documentation.
+- Privacy Policy.
+- Terms of Service.
+- Contact information.
+
+All links must work.
+
+---
+
+# PAGE 2 — REGISTRATION
+
+Route: `/register`
+
+Purpose: Create a new account.
+
+### Fields
+
+- Full name.
+- Email address.
+- Password.
+- Confirm password.
+- Accept Terms and Privacy Policy checkbox.
+
+### Buttons
+
+**Create Account**
+
+- Validate all fields.
+- Check password requirements.
+- Validate email format.
+- Submit to backend.
+- Hash password using bcrypt.
+- Prevent duplicate registrations.
+- Create user record.
+- Sign user in securely.
+- Redirect to onboarding.
+
+**Show/Hide Password**
+
+- Toggle password visibility.
+
+**Already have an account?**
+
+- Navigate to login.
+
+### Validation
+
+- Name cannot be empty.
+- Email must be valid.
+- Password must meet the defined security requirements.
+- Password confirmation must match.
+- Terms acceptance is mandatory.
+
+Display clear validation messages.
+
+---
+
+# PAGE 3 — LOGIN
+
+Route: `/login`
+
+### Fields
+
+- Email.
+- Password.
+
+### Buttons
+
+**Sign In**
+
+- Authenticate through backend.
+- Validate credentials.
+- Issue secure session.
+- Redirect authenticated users to dashboard.
+
+**Remember Me**
+
+Use an appropriate secure session strategy rather than storing authentication tokens in insecure browser storage.
+
+**Forgot Password**
+
+Implement a secure reset flow if email delivery is configured. Otherwise, clearly indicate that password recovery requires administrator-assisted setup. Do not show fake success.
+
+**Create Account**
+
+Navigate to registration.
+
+Protected routes must reject unauthenticated users.
+
+---
+
+# PAGE 4 — ONBOARDING
+
+Route: `/onboarding`
+
+Display a welcoming setup wizard.
+
+### Step 1: Welcome
+
+"Let's get your business ready for smarter payments."
+
+### Step 2: Business Information
+
+Fields:
+
+- Business or professional name.
+- Business type.
+- Industry.
+- Short business description.
+
+Business types:
+
+- Freelancer.
+- Agency.
+- Small business.
+- Consultant.
+- Other.
+
+### Step 3: Payment Preferences
+
+Fields:
+
+- Default currency.
+- Preferred payment description style.
+- Default payment due period.
+
+For the first MVP, support USD only for actual PayPal checkout. Do not advertise other currencies as functional until they are implemented and tested.
+
+### Step 4: PayPal Sandbox Setup
+
+Explain:
+
+- What Sandbox means.
+- Difference between buyer and business accounts.
+- How to configure the PayPal Developer application.
+- Where credentials belong.
+
+Do not ask users to enter their PayPal Client Secret into a frontend form.
+
+### Step 5: Complete
+
+Show:
+
+"Your workspace is ready."
+
+Button: "Go to Dashboard"
+
+Persist onboarding information in MongoDB.
+
+---
+
+# PAGE 5 — MAIN DASHBOARD
+
+Route: `/dashboard`
+
+This is the primary authenticated application screen.
+
+Design it as a polished, premium SaaS dashboard.
+
+### Layout
+
+Desktop:
+
+- Fixed or collapsible sidebar.
+- Top navigation.
+- Main content.
+- Responsive dashboard grid.
+
+Mobile:
+
+- Compact top bar.
+- Drawer navigation.
+- Single-column cards.
+- Mobile-friendly transaction lists.
+
+### Sidebar Navigation
+
+1. Overview.
+2. AI Payment Agent.
+3. Payment Requests.
+4. Transactions.
+5. Clients.
+6. AI Insights.
+7. Reports.
+8. Settings.
+
+Bottom sidebar:
+
+- Help Center.
+- User Profile.
+- Logout.
+
+All navigation items must lead to implemented routes.
+
+### Dashboard Header
+
+Title:
+
+"Good morning, [User Name]"
+
+Subtitle:
+
+"Here's what's happening with your payments today."
+
+Include:
+
+- Date.
+- Notification indicator.
+- Profile menu.
+
+### Welcome Action Card
+
+Headline:
+
+"Let AI handle the busywork."
+
+Description:
+
+"Create your next payment request with a simple conversation."
+
+Button:
+
+"Open AI Payment Agent"
+
+### KPI Cards
+
+Display:
+
+1. Total Revenue.
+2. Payments Collected.
+3. Pending Payments.
+4. Active Payment Requests.
+
+Each card must use real database information.
+
+Display comparison percentages only when the underlying comparison data exists. Otherwise, omit the comparison.
+
+### Revenue Chart
+
+Create a professional revenue chart using Recharts.
+
+Requirements:
+
+- Daily revenue.
+- Weekly revenue.
+- Monthly revenue.
+- Date-range filters.
+
+Charts must use actual captured payment records.
+
+Pending or cancelled transactions must not count as collected revenue.
+
+### Recent Transactions
+
+Table columns:
+
+- Transaction ID.
+- Client.
+- Description.
+- Amount.
+- Date.
+- Status.
+- Action.
+
+Actions:
+
+- View Details.
+- Copy Payment ID where appropriate.
+
+### Upcoming Payments
+
+Display payment requests approaching their due date.
+
+### AI Insights Preview
+
+Show a real AI-generated summary based on database-derived statistics.
+
+Example:
+
+"You collected $1,200 across four completed payments this month."
+
+The AI must receive calculated figures and explain them. It must not invent financial information.
+
+### Empty State
+
+If there are no payments:
+
+"Your payment journey starts here."
+
+CTA:
+
+"Create Your First Payment Request"
+
+---
+
+# PAGE 6 — AI PAYMENT AGENT
+
+Route: `/ai-agent`
+
+This is the signature feature of PayPilot AI.
+
+It should receive special design and engineering attention.
+
+### Layout
+
+Three main areas:
+
+1. Conversation panel.
+2. AI response area.
+3. Payment proposal preview.
+
+### Header
+
+Title:
+
+"Meet Your AI Payment Agent"
+
+Subtitle:
+
+"Describe what you need. Your AI assistant will prepare the payment workflow."
+
+Show a small Gemini-powered indicator.
+
+### Initial Welcome Message
+
+"Hello! I'm your PayPilot AI assistant. I can help you prepare payment requests, understand transactions, create professional payment messages and explore your revenue."
+
+### Suggested Commands
+
+Create interactive suggestion cards:
+
+- Create a payment request.
+- Generate an invoice description.
+- Explain my revenue.
+- Find overdue payments.
+- Draft a payment reminder.
+- Summarize recent transactions.
+
+When clicked, populate or submit the appropriate prompt.
+
+### Chat Input
+
+Features:
+
+- Multiline input.
+- Send button.
+- Enter to send.
+- Shift + Enter for a new line.
+- Loading indicator.
+- Clear conversation.
+- Copy AI response.
+
+### AI Processing
+
+When a user submits a message:
+
+1. Send it to the backend.
+2. Backend validates the authenticated session.
+3. Backend calls Gemini.
+4. Gemini interprets the request.
+5. Backend validates the response against a strict schema.
+6. Return structured information.
+7. Display the AI response.
+8. If payment details exist, show a proposal card.
+
+### Structured Payment Proposal
+
+Fields:
+
+- Client name.
+- Client email, if provided.
+- Service name.
+- Item description.
+- Quantity.
+- Unit price.
+- Total amount.
+- Currency.
+- Due date.
+- Professional description.
+
+The AI must not assume missing information.
+
+If important information is missing, ask the user a clarification question.
+
+### Proposal Actions
+
+**Edit Details**
+
+Opens editable payment proposal form.
+
+**Approve Proposal**
+
+Marks the proposal as approved by the user.
+
+Approval must not automatically capture a payment.
+
+**Create PayPal Checkout**
+
+Calls the backend to create a Sandbox order for the approved request.
+
+**Cancel Proposal**
+
+Discards the pending proposal.
+
+**Copy Description**
+
+Copies the generated description.
+
+**Generate Another Version**
+
+Requests a new description from Gemini.
+
+### Additional AI Capabilities
+
+The AI agent should understand requests such as:
+
+"Show my total revenue this month."
+
+"Which payments are overdue?"
+
+"Write a friendly reminder for Alex."
+
+"Explain why my pending payments are higher this week."
+
+"Summarize my latest five transactions."
+
+For financial questions, retrieve actual authorized database information first.
+
+Do not allow the AI model to directly query unrestricted MongoDB collections.
+
+---
+
+# PAGE 7 — PAYMENT REQUESTS
+
+Route: `/payment-requests`
+
+Purpose: Manage payment requests.
+
+### Header
+
+Title: "Payment Requests"
+
+Description:
+
+"Create, manage and track every payment request in one place."
+
+Primary button:
+
+"+ Create Payment Request"
+
+### Statistics
+
+- All Requests.
+- Drafts.
+- Pending.
+- Paid.
+- Overdue.
+
+### Filters
+
+- Status.
+- Date.
+- Amount.
+- Client.
+- Search.
+
+### Payment Request Table
+
+Columns:
+
+- Request Number.
+- Client.
+- Description.
+- Amount.
+- Created Date.
+- Due Date.
+- Status.
+- Actions.
+
+### Row Actions
+
+**View**
+
+Open detailed request.
+
+**Edit**
+
+Allow edits only when the request has not been paid and is in an eligible state.
+
+**Copy Link**
+
+Copy the public payment URL.
+
+**Send Reminder**
+
+Generate a reminder draft using AI.
+
+**Cancel**
+
+Cancel an eligible unpaid request.
+
+**Delete**
+
+Allow deletion of drafts only. Preserve financial transaction records.
+
+### Create Payment Request
+
+Provide two creation methods:
+
+1. Create with AI.
+2. Create Manually.
+
+Manual form:
+
+- Client name.
+- Client email.
+- Service name.
+- Description.
+- Quantity.
+- Unit price.
+- Due date.
+
+Automatically calculate totals.
+
+Validate all amounts on the backend.
+
+The user must review the final total.
+
+### Success Feedback
+
+After creating a request:
+
+"Payment request created successfully."
+
+Display the generated payment link.
+
+Provide a copy button.
+
+---
+
+# PAGE 8 — PAYMENT REQUEST DETAILS
+
+Route: `/payment-requests/:id`
+
+Display:
+
+- Request ID.
+- Client information.
+- Description.
+- Line items.
+- Subtotal.
+- Total.
+- Currency.
+- Creation date.
+- Due date.
+- Current status.
+- Associated PayPal order ID, when available.
+
+### Timeline
+
+Display relevant events:
+
+- Request created.
+- Request approved.
+- PayPal order created.
+- Customer approved checkout.
+- Payment captured.
+- Request cancelled.
+
+Only display events supported by stored records.
+
+### Actions
+
+- Edit Request.
+- Copy Payment Link.
+- Open Customer Payment Page.
+- Generate Reminder.
+- Cancel Request.
+
+Disable inappropriate actions according to the request status.
+
+---
+
+# PAGE 9 — PUBLIC PAYMENT PAGE
+
+Route: `/pay/:token`
+
+This page is extremely important because it demonstrates the complete payment experience.
+
+It must work without dashboard authentication, but the token must be unguessable and the backend must validate its ownership and status.
+
+### Page Design
+
+Create a clean, premium checkout page.
+
+Display:
+
+- PayPilot AI branding.
+- Business name.
+- Client-facing payment request.
+- Service description.
+- Itemized amount.
+- Total amount.
+- Due date.
+- Payment status.
+
+### Payment Section
+
+Display PayPal checkout using the official PayPal JavaScript SDK.
+
+Use Sandbox configuration.
+
+### Customer Journey
+
+1. Customer opens payment URL.
+2. Backend validates payment request.
+3. Application retrieves approved request information.
+4. PayPal checkout is rendered.
+5. Customer signs into a Sandbox buyer account.
+6. Customer approves payment.
+7. Frontend requests server-side order capture.
+8. Backend captures the order through PayPal REST API.
+9. Backend verifies the response.
+10. Backend updates the payment record.
+11. Customer sees the actual result.
+
+### Success State
+
+Display only after successful server-side verification:
+
+"Payment completed successfully."
+
+Show:
+
+- Payment amount.
+- Transaction reference.
+- Payment date.
+- Business name.
+
+### Failure State
+
+If payment fails:
+
+"Your payment could not be completed."
+
+Provide an appropriate retry option when the request remains eligible.
+
+### Cancellation State
+
+If checkout is cancelled:
+
+"Payment was not completed. You can try again."
+
+Do not mark cancelled checkout as paid.
+
+### Security
+
+- Do not trust frontend amounts.
+- Do not accept arbitrary order IDs without validating the associated request.
+- Verify order ownership and expected amount.
+- Prevent duplicate capture.
+- Use idempotency protection.
+- Never expose Client Secret.
+
+---
+
+# PAGE 10 — TRANSACTIONS
+
+Route: `/transactions`
+
+Purpose: Display actual payment transactions.
+
+### Header
+
+"Transaction History"
+
+### KPI Cards
+
+- Total Captured.
+- Successful Transactions.
+- Pending Transactions.
+- Failed Transactions.
+
+### Filters
+
+- Date range.
+- Payment status.
+- Amount.
+- Client.
+- Search.
+
+### Transaction Table
+
+Columns:
+
+- Transaction ID.
+- PayPal Order ID.
+- Client.
+- Description.
+- Amount.
+- Currency.
+- Date.
+- Status.
+- Actions.
+
+### Actions
+
+- View Details.
+- Copy Transaction ID.
+- Open Related Payment Request.
+
+### Transaction Detail Drawer
+
+Show:
+
+- Transaction information.
+- PayPal order ID.
+- Capture ID.
+- Payment amount.
+- Currency.
+- Status.
+- Timestamps.
+- Related request.
+
+Only display verified information.
+
+---
+
+# PAGE 11 — CLIENT MANAGEMENT
+
+Route: `/clients`
+
+Purpose: Manage customers and their payment activity.
+
+### Client List
+
+Columns:
+
+- Client Name.
+- Email.
+- Total Requests.
+- Total Paid.
+- Pending Amount.
+- Last Payment.
+- Actions.
+
+### Create Client
+
+Fields:
+
+- Name.
+- Email.
+- Company.
+- Notes.
+
+### Client Actions
+
+- View Client.
+- Edit Client.
+- Delete Client when no financial records would be orphaned.
+
+### Client Details
+
+Route: `/clients/:id`
+
+Display:
+
+- Client profile.
+- Payment requests.
+- Transaction history.
+- Total amount paid.
+- Pending requests.
+
+### Important
+
+Client financial information must be scoped to the authenticated business owner.
+
+---
+
+# PAGE 12 — AI REVENUE INSIGHTS
+
+Route: `/insights`
+
+Purpose: Turn actual financial information into useful explanations.
+
+### Header
+
+"Understand Your Business with AI"
+
+### Financial Metrics
+
+- Total collected revenue.
+- Average captured transaction.
+- Pending payments.
+- Successful payment count.
+- Monthly revenue.
+
+### Charts
+
+1. Revenue trend.
+2. Payment status distribution.
+3. Monthly payment activity.
+4. Top clients by collected revenue.
+
+### AI Analysis Panel
+
+Button:
+
+"Generate Revenue Insights"
+
+Backend should:
+
+1. Retrieve authorized user financial data.
+2. Calculate accurate statistics.
+3. Send summarized information to Gemini.
+4. Generate concise explanations.
+5. Return recommendations grounded in the calculations.
+
+### Example AI Output
+
+"Your collected revenue increased this month compared with the previous month. Three payment requests remain pending. Consider sending reminders to clients whose due dates have passed."
+
+The example must not be shown as a real result unless supported by actual data.
+
+### Actions
+
+- Regenerate Insights.
+- Copy Summary.
+- Export Report.
+
+---
+
+# PAGE 13 — SMART FOLLOW-UP ASSISTANT
+
+Route: `/follow-ups`
+
+Purpose: Help business owners communicate with clients about pending payments.
+
+### Features
+
+- List pending payment requests.
+- Identify overdue requests.
+- Generate personalized reminders.
+- Select reminder tone.
+- Preview message.
+- Edit message.
+- Copy message.
+
+### Tone Options
+
+- Friendly.
+- Professional.
+- Polite.
+- Urgent but respectful.
+
+### Reminder Generation
+
+Gemini should use actual:
+
+- Client name.
+- Payment amount.
+- Request description.
+- Due date.
+- Current status.
+
+### Important
+
+For the MVP, reminders are drafts that the user can copy.
+
+Do not display a Send Email button unless an actual authorized email delivery service has been implemented and tested.
+
+---
+
+# PAGE 14 — REPORTS
+
+Route: `/reports`
+
+Purpose: Provide downloadable business summaries.
+
+### Reports
+
+- Revenue Summary.
+- Transaction Report.
+- Payment Request Report.
+- Client Payment Report.
+
+### Filters
+
+- Date range.
+- Transaction status.
+- Client.
+
+### Export Formats
+
+- CSV.
+- PDF, if implemented reliably.
+
+### Buttons
+
+- Generate Report.
+- Download CSV.
+- Download PDF.
+- Reset Filters.
+
+Exports must contain actual authorized database records.
+
+---
+
+# PAGE 15 — SETTINGS
+
+Route: `/settings`
+
+Create a settings interface with tabs.
+
+### Tab 1: Profile
+
+- Full name.
+- Email.
+- Business name.
+- Business type.
+- Profile image or initials.
+
+Buttons:
+
+- Edit Profile.
+- Save Changes.
+- Cancel.
+
+### Tab 2: Business Preferences
+
+- Business description.
+- Default payment due period.
+- Default currency.
+- Invoice description preferences.
+
+### Tab 3: PayPal Integration
+
+Display:
+
+- Sandbox connection status.
+- Application configuration status.
+- Sandbox environment indicator.
+- Setup instructions.
+
+Never display the complete Client Secret.
+
+Provide clear setup guidance.
+
+### Tab 4: AI Preferences
+
+- AI assistant enabled status.
+- Default response language.
+- Preferred communication tone.
+- AI explanation detail.
+
+### Tab 5: Security
+
+- Change Password.
+- Active Session Information.
+- Logout.
+
+Implement secure session invalidation.
+
+### Tab 6: Notifications
+
+For the MVP, provide working in-app notification preferences only if corresponding notifications are implemented.
+
+Do not include non-functional notification toggles.
+
+---
+
+# PAGE 16 — HELP AND ERROR PAGES
+
+Implement:
+
+- `/404` Not Found.
+- Unauthorized access page.
+- Server error page.
+- Payment unavailable page.
+- Payment cancelled page.
+- Loading states.
+- Empty states.
+- Offline/network error feedback where detectable.
+
+Every error page should provide a useful navigation action.
+
+---
+
+# PART 6 — AI ENGINEERING SPECIFICATION
+
+## 6.1 AI Provider
+
+Use Google Gemini through the official Google Gen AI SDK.
+
+Use a server-side integration.
+
+Recommended environment variable:
+
+`GEMINI_API_KEY`
+
+Never expose the key in frontend environment variables.
+
+## 6.2 AI Payment Agent Architecture
+
+Frontend:
+
+User sends a message.
+
+Backend:
+
+- Validates authentication.
+- Validates the input.
+- Retrieves relevant authorized data.
+- Calls Gemini.
+- Validates structured output.
+- Returns the response.
+
+Gemini must not have unrestricted authority over payments or the database.
+
+## 6.3 Structured Payment Extraction
+
+The AI should return a validated structure similar to:
+
+```json
+{
+  "intent": "create_payment_request",
+  "requires_clarification": false,
+  "clarification_question": null,
+  "payment": {
+    "client_name": "Alex",
+    "client_email": null,
+    "service_name": "Business Website Development",
+    "description": "Development of a business website",
+    "quantity": 1,
+    "unit_price": 450,
+    "currency": "USD",
+    "due_date": "2026-11-18"
+  },
+  "message": "I have prepared your payment request.",
+  "suggested_action": "review_payment"
+}
+```
+
+This is an illustrative example, not a hardcoded response.
+
+## 6.4 AI Validation
+
+Validate:
+
+- Intent.
+- Client information.
+- Numeric values.
+- Currency.
+- Due date.
+- Required fields.
+- Maximum permitted amount.
+- Unsupported requests.
+
+Reject invalid or incomplete output.
+
+The backend, not Gemini, must calculate the final amount.
+
+## 6.5 AI System Instructions
+
+Use the following system instruction for Gemini:
+
+"You are PayPilot AI, a professional financial workflow assistant.
+
+Your role is to help authenticated business owners prepare payment requests, understand payment activity, generate professional client messages and analyze financial information.
+
+You must never execute or capture payments autonomously.
+
+Always request clarification when essential payment details are missing.
+
+Never invent client details, payment amounts, transaction IDs, payment statuses or financial statistics.
+
+Only use financial information supplied by the authorized backend.
+
+Treat all generated payment details as proposals requiring user review.
+
+Do not make unsupported claims about payment completion.
+
+Always distinguish between a draft payment request, a created PayPal order, an approved checkout and a verified captured payment.
+
+Return structured JSON when the backend requests structured output.
+
+Be concise, helpful, professional and accurate."
+
+## 6.6 AI Security
+
+- Validate all model output.
+- Treat user prompts as untrusted input.
+- Prevent prompt injection from overriding system instructions.
+- Do not expose internal prompts or API credentials.
+- Do not allow cross-user data access.
+- Do not let Gemini execute arbitrary database queries.
+- Do not allow model output to authorize financial transactions.
+
+---
+
+# PART 7 — PAYPAL DEVELOPER INTEGRATION
+
+This section is essential for hackathon eligibility.
+
+## 7.1 PayPal Technologies
+
+Integrate:
+
+1. PayPal Developer Sandbox.
+2. PayPal REST API.
+3. Orders API v2.
+4. PayPal JavaScript SDK.
+
+Official resources:
+
+- https://developer.paypal.com/dashboard/
+- https://developer.paypal.com/api/rest/
+- https://developer.paypal.com/checkout/integrate/
+- https://developer.paypal.com/api/rest/integration/orders-api/
+- https://developer.paypal.com/sandbox-testing/accounts/
+
+## 7.2 Environment Configuration
+
+Example backend `.env`:
+
+```env
+PORT=5000
+NODE_ENV=development
+
+MONGODB_URI=
+
+JWT_SECRET=
+
+GEMINI_API_KEY=
+
+PAYPAL_CLIENT_ID=
+PAYPAL_CLIENT_SECRET=
+PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com
+
+CLIENT_URL=http://localhost:5173
+SERVER_URL=http://localhost:5000
+```
+
+Use the official Sandbox environment.
+
+Do not enable live payment processing.
+
+## 7.3 PayPal Order Workflow
+
+Implement:
+
+### Step 1: Create Order
+
+Backend endpoint:
+
+`POST /api/payments/create-order`
+
+Requirements:
+
+- Authenticate the request owner.
+- Verify the payment request belongs to that user.
+- Check its status.
+- Calculate the amount from stored server-side records.
+- Request a PayPal OAuth access token.
+- Create an Orders API v2 order.
+- Use CAPTURE intent.
+- Store the PayPal order ID.
+- Return the order ID to the frontend.
+
+### Step 2: Approve Checkout
+
+Frontend uses the official PayPal JavaScript SDK.
+
+Customer approves the Sandbox checkout.
+
+### Step 3: Capture Order
+
+Backend endpoint:
+
+`POST /api/payments/capture-order`
+
+Requirements:
+
+- Verify the request and order association.
+- Ensure the order belongs to the expected payment request.
+- Prevent duplicate captures.
+- Capture through PayPal.
+- Verify the returned status.
+- Validate amount and currency.
+- Save the transaction.
+- Update the payment request status.
+- Return the verified result.
+
+### Step 4: Transaction Record
+
+Store:
+
+- Internal transaction ID.
+- PayPal order ID.
+- PayPal capture ID.
+- Payment request ID.
+- Business owner ID.
+- Amount.
+- Currency.
+- Status.
+- Created timestamp.
+- Captured timestamp.
+
+## 7.4 Payment Statuses
+
+Use clearly defined states:
+
+- DRAFT.
+- PENDING.
+- APPROVED.
+- COMPLETED.
+- FAILED.
+- CANCELLED.
+- OVERDUE.
+
+Do not confuse PayPal order approval with completed payment capture.
+
+## 7.5 Additional Payment Security
+
+- Use idempotency keys where supported.
+- Verify PayPal API responses.
+- Prevent duplicate payment records.
+- Validate payment amounts.
+- Validate currency.
+- Use database transactions where supported.
+- Handle network timeouts.
+- Never trust a client-side success message.
+- Implement PayPal webhook signature verification if webhook support is included.
+- Do not mark an order completed based only on a browser redirect.
+
+---
+
+# PART 8 — DATABASE DESIGN
+
+Use MongoDB Atlas and Mongoose.
+
+All records must be associated with the authenticated user or business workspace.
+
+## 8.1 User Collection
+
+Fields:
+
+- `_id`
+- `name`
+- `email`
+- `passwordHash`
+- `businessName`
+- `businessType`
+- `businessDescription`
+- `defaultCurrency`
+- `onboardingCompleted`
+- `createdAt`
+- `updatedAt`
+
+Email must be unique.
+
+## 8.2 Client Collection
+
+Fields:
+
+- `_id`
+- `ownerId`
+- `name`
+- `email`
+- `company`
+- `notes`
+- `createdAt`
+- `updatedAt`
+
+## 8.3 Payment Request Collection
+
+Fields:
+
+- `_id`
+- `ownerId`
+- `clientId`
+- `requestNumber`
+- `description`
+- `lineItems`
+- `subtotal`
+- `totalAmount`
+- `currency`
+- `dueDate`
+- `status`
+- `publicTokenHash`
+- `paypalOrderId`
+- `createdAt`
+- `updatedAt`
+
+Each line item:
+
+- `name`
+- `description`
+- `quantity`
+- `unitPrice`
+- `lineTotal`
+
+## 8.4 Transaction Collection
+
+Fields:
+
+- `_id`
+- `ownerId`
+- `paymentRequestId`
+- `paypalOrderId`
+- `paypalCaptureId`
+- `amount`
+- `currency`
+- `status`
+- `captureResponseReference`
+- `createdAt`
+- `capturedAt`
+
+Do not store sensitive payment credentials or unnecessary payment information.
+
+## 8.5 AI Conversation Collection
+
+Fields:
+
+- `_id`
+- `ownerId`
+- `messages`
+- `createdAt`
+- `updatedAt`
+
+Avoid storing sensitive credentials or unnecessary financial information in chat history.
+
+## 8.6 Notification Collection
+
+Fields:
+
+- `_id`
+- `ownerId`
+- `title`
+- `message`
+- `type`
+- `read`
+- `createdAt`
+
+---
+
+# PART 9 — BACKEND API REQUIREMENTS
+
+Use Express.js with modular controllers, routes, middleware and services.
+
+All protected routes must use authentication middleware.
+
+## Authentication
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/auth/register` | Create account |
+| POST | `/api/auth/login` | Authenticate |
+| POST | `/api/auth/logout` | Invalidate session |
+| GET | `/api/auth/me` | Current user |
+| PATCH | `/api/auth/profile` | Update profile |
+| POST | `/api/auth/change-password` | Change password |
+
+## AI
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/ai/chat` | AI conversation |
+| POST | `/api/ai/parse-payment` | Extract payment details |
+| POST | `/api/ai/generate-description` | Generate descriptions |
+| POST | `/api/ai/insights` | Generate revenue insights |
+| POST | `/api/ai/generate-reminder` | Generate reminder drafts |
+
+## Payment Requests
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/payment-requests` | Create request |
+| GET | `/api/payment-requests` | List requests |
+| GET | `/api/payment-requests/:id` | View request |
+| PATCH | `/api/payment-requests/:id` | Update request |
+| POST | `/api/payment-requests/:id/cancel` | Cancel request |
+| GET | `/api/public/payment-requests/:token` | Public payment page |
+
+## PayPal
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/payments/create-order` | Create Sandbox order |
+| POST | `/api/payments/capture-order` | Capture approved order |
+| GET | `/api/payments` | List transactions |
+| GET | `/api/payments/:id` | Transaction details |
+
+## Clients
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/clients` | Create client |
+| GET | `/api/clients` | List clients |
+| GET | `/api/clients/:id` | View client |
+| PATCH | `/api/clients/:id` | Update client |
+| DELETE | `/api/clients/:id` | Delete eligible client |
+
+## Dashboard
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/dashboard/stats` | Dashboard metrics |
+| GET | `/api/dashboard/revenue` | Revenue chart data |
+| GET | `/api/dashboard/recent-transactions` | Recent activity |
+
+## Reports
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/reports/revenue` | Revenue report |
+| GET | `/api/reports/transactions` | Transaction report |
+| GET | `/api/reports/export` | CSV export |
+
+## General
+
+`GET /api/health`
+
+Return application health and database connectivity status.
+
+Never return API secrets.
+
+---
+
+# PART 10 — FRONTEND ARCHITECTURE
+
+Use:
+
+- React.
+- TypeScript.
+- Vite.
+- React Router.
+- Tailwind CSS.
+- Lucide React.
+- Recharts.
+- React Hook Form.
+- Zod.
+- TanStack Query where useful.
+- A reusable toast notification system.
+
+## Component Organization
+
+Create reusable components:
+
+- AppLayout.
+- Sidebar.
+- Topbar.
+- MobileNavigation.
+- PageHeader.
+- Button.
+- Input.
+- Select.
+- Modal.
+- ConfirmationDialog.
+- DataTable.
+- StatusBadge.
+- StatCard.
+- ChartCard.
+- EmptyState.
+- LoadingState.
+- ErrorState.
+- PaymentRequestCard.
+- TransactionTable.
+- AIChatPanel.
+- AIMessage.
+- PaymentProposalCard.
+- PayPalCheckout.
+- NotificationDropdown.
+
+Use consistent components across the application.
+
+## State Management
+
+- Keep server data in a proper query/cache system.
+- Keep UI state in React state or an appropriate state manager.
+- Do not treat localStorage as a financial database.
+- Refresh or invalidate relevant queries after successful mutations.
+- Handle loading and error states.
+
+## Routing
+
+Implement route protection.
+
+Public routes:
+
+- `/`
+- `/login`
+- `/register`
+- `/pay/:token`
+
+Protected routes:
+
+- `/onboarding`
+- `/dashboard`
+- `/ai-agent`
+- `/payment-requests`
+- `/payment-requests/:id`
+- `/transactions`
+- `/clients`
+- `/clients/:id`
+- `/insights`
+- `/follow-ups`
+- `/reports`
+- `/settings`
+
+---
+
+# PART 11 — PREMIUM UI/UX DESIGN SYSTEM
+
+## 11.1 Design Direction
+
+Design PayPilot AI as a premium, modern financial technology SaaS product.
+
+The visual experience should feel:
+
+- Professional.
+- Elegant.
+- Intelligent.
+- Trustworthy.
+- Minimal.
+- Premium.
+- Modern.
+- Friendly.
+- Easy to understand.
+
+Avoid generic AI-generated dashboard appearances.
+
+Avoid excessive gradients, random decorations, overcrowded screens, oversized headings and unnecessary animations.
+
+## 11.2 Color Palette
+
+Use a warm ivory and deep green design language.
+
+| Token | Color |
+|---|---|
+| Main Background | `#FAF9F5` |
+| Card Background | `#FFFFFF` |
+| Primary Green | `#174B38` |
+| Secondary Green | `#287052` |
+| Light Green | `#E7F1E9` |
+| Soft Sage | `#DCE9DF` |
+| Main Text | `#1E2924` |
+| Secondary Text | `#78847D` |
+| Border | `#E8EAE5` |
+| Success | `#238653` |
+| Warning | `#D89A35` |
+| Error | `#C94D4D` |
+
+Use green as the primary brand color.
+
+Use neutral backgrounds and carefully selected accent colors.
+
+Do not make the entire application green.
+
+## 11.3 Typography
+
+Use:
+
+- Manrope for headings.
+- Inter for body text and interface labels.
+
+Typography must have:
+
+- Clear hierarchy.
+- Readable font sizes.
+- Proper line height.
+- Consistent weight.
+- Accessible contrast.
+
+## 11.4 Logo and Brand
+
+Create a simple, memorable PayPilot AI identity.
+
+Suggested concept:
+
+A modern combination of a navigation/pilot symbol and a subtle payment or motion element.
+
+Wordmark:
+
+**PayPilot AI**
+
+Use an original visual identity.
+
+Do not copy PayPal's logo or imply that PayPilot is an official PayPal product.
+
+Use PayPal branding only where necessary to identify the genuine checkout integration, following its applicable brand guidelines.
+
+## 11.5 Dashboard Design
+
+Desktop layout:
+
+- Sidebar width approximately 250px.
+- Main content with generous spacing.
+- Consistent card radii.
+- Subtle borders.
+- Very light shadows.
+- Clear page headings.
+- Responsive tables and charts.
+
+Use a consistent spacing scale.
+
+Avoid:
+
+- Excessive card nesting.
+- Too many borders.
+- Random icon colors.
+- Giant empty spaces.
+- Cluttered navigation.
+- Inconsistent button styles.
+
+## 11.6 Button Design
+
+Primary button:
+
+- Deep green background.
+- White text.
+- Rounded corners.
+- Smooth hover state.
+
+Secondary button:
+
+- White background.
+- Neutral border.
+- Dark text.
+
+Tertiary button:
+
+- Transparent.
+- Minimal styling.
+
+Danger button:
+
+- Accessible red treatment.
+
+Every button must have:
+
+- Hover state.
+- Focus state.
+- Disabled state.
+- Loading state when applicable.
+
+## 11.7 Animations
+
+Use Framer Motion or CSS animations selectively.
+
+Allowed:
+
+- Subtle page transitions.
+- Fade-in sections.
+- Small hover effects.
+- Sidebar transitions.
+- Modal animations.
+- Chart entrance animations.
+- AI typing indicator.
+
+Avoid excessive motion.
+
+Respect `prefers-reduced-motion`.
+
+## 11.8 Responsive Design
+
+The application must work at:
+
+- 320px mobile.
+- 375px mobile.
+- 430px mobile.
+- 768px tablet.
+- 1024px laptop.
+- 1280px desktop.
+- 1440px desktop.
+- 1920px wide screen.
+
+Requirements:
+
+- No horizontal overflow.
+- Responsive tables.
+- Collapsible navigation.
+- Properly sized charts.
+- Touch-friendly controls.
+- Readable typography.
+- Accessible forms.
+- Proper modal behavior.
+
+## 11.9 Accessibility
+
+Implement:
+
+- Semantic HTML.
+- Keyboard navigation.
+- Visible focus indicators.
+- Accessible labels.
+- Appropriate ARIA attributes.
+- Sufficient color contrast.
+- Screen-reader-friendly status messages.
+
+---
+
+# PART 12 — EVERY BUTTON AND INTERACTION MUST WORK
+
+Create a complete interaction audit.
+
+| Component | Expected behavior |
+|---|---|
+| Logo | Navigate to homepage |
+| Sign In | Open login |
+| Get Started | Open registration |
+| Sidebar item | Open corresponding route |
+| Mobile menu | Open and close navigation |
+| Profile menu | Show profile actions |
+| Logout | Invalidate session |
+| Search | Filter actual records |
+| Filter | Update displayed results |
+| Date selector | Change selected date range |
+| Create Request | Open creation workflow |
+| AI Agent | Open AI workspace |
+| Send Message | Submit to Gemini backend |
+| Copy | Copy selected text |
+| Edit | Open editable form |
+| Save | Persist changes |
+| Cancel | Discard unsaved changes |
+| Approve | Confirm payment proposal |
+| Create PayPal Checkout | Create real Sandbox order |
+| PayPal Button | Start Sandbox checkout |
+| Capture | Request server-side capture |
+| View Details | Open actual record |
+| Generate Insights | Request real AI analysis |
+| Generate Reminder | Generate actual AI draft |
+| Download CSV | Download real report |
+| Change Password | Submit secure password update |
+| Notification | Mark notification read |
+| Pagination | Load appropriate records |
+| Retry | Retry an eligible failed operation |
+
+Additional rules:
+
+- Show confirmation dialogs for destructive actions.
+- Prevent double submissions.
+- Disable buttons during pending requests.
+- Show success notifications.
+- Show meaningful errors.
+- Update the interface after successful actions.
+- Never silently fail.
+
+If a feature is not implemented, do not show an active control for it.
+
+---
+
+# PART 13 — SECURITY AND DATA PROTECTION
+
+Implement:
+
+1. Password hashing with bcrypt.
+2. Secure HTTP-only authentication cookies where supported.
+3. Appropriate SameSite and Secure cookie settings.
+4. CSRF protection where applicable to cookie-based sessions.
+5. Backend authorization middleware.
+6. User ownership checks on every protected resource.
+7. Request validation using Zod.
+8. Rate limiting on authentication and AI endpoints.
+9. Secure CORS configuration.
+10. Helmet security headers.
+11. Environment variable validation.
+12. Safe error responses.
+13. Protection against MongoDB injection.
+14. Payment idempotency.
+15. PayPal response verification.
+16. No sensitive keys in GitHub.
+17. No payment credentials in AI prompts.
+18. No unauthorized access to public payment requests.
+
+The public payment page must only expose the information necessary for checkout.
+
+Use cryptographically secure random tokens for public payment links. Store token hashes where practical.
+
+---
+
+# PART 14 — TESTING REQUIREMENTS
+
+Do not consider the project complete merely because the homepage renders.
+
+## 14.1 Authentication Tests
+
+- Registration succeeds.
+- Duplicate email is rejected.
+- Invalid login is rejected.
+- Valid login succeeds.
+- Protected pages reject unauthenticated requests.
+- Logout invalidates the session.
+
+## 14.2 AI Tests
+
+- Payment information is extracted correctly.
+- Missing details trigger clarification.
+- Invalid model output is rejected.
+- AI descriptions are generated.
+- Revenue insights use actual backend calculations.
+- AI cannot approve or capture transactions.
+
+## 14.3 Payment Tests
+
+- Valid payment request creates a Sandbox order.
+- Invalid request is rejected.
+- Checkout approval works.
+- Successful capture updates the transaction.
+- Cancelled checkout is not marked paid.
+- Duplicate capture is prevented.
+- Incorrect amount is rejected.
+- PayPal API errors are handled.
+- Payment status is persisted correctly.
+
+## 14.4 Dashboard Tests
+
+- Statistics are calculated correctly.
+- Charts use actual payment records.
+- Empty states render correctly.
+- Filters work.
+- Data refreshes after payment capture.
+
+## 14.5 Responsive Tests
+
+Test all important pages on:
+
+- Mobile.
+- Tablet.
+- Laptop.
+- Desktop.
+
+## 14.6 Final Quality Checks
+
+- No broken routes.
+- No dead buttons.
+- No console errors.
+- No uncaught API errors.
+- No missing images.
+- No horizontal overflow.
+- No fake payment success.
+- No exposed secrets.
+- No cross-user data access.
+- No misleading analytics.
+
+Report actual test results. Never invent passing test counts.
+
+---
+
+# PART 15 — PROJECT STRUCTURE
+
+Use a clean monorepo structure similar to:
+
+```text
+paypilot-ai/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   │   ├── common/
+│   │   │   ├── layout/
+│   │   │   ├── dashboard/
+│   │   │   ├── payments/
+│   │   │   ├── transactions/
+│   │   │   └── ai/
+│   │   │
+│   │   ├── pages/
+│   │   ├── routes/
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   ├── contexts/
+│   │   ├── schemas/
+│   │   ├── types/
+│   │   └── utils/
+│   │
+│   ├── public/
+│   └── package.json
+│
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   │   ├── ai/
+│   │   │   └── paypal/
+│   │   ├── validators/
+│   │   ├── utils/
+│   │   ├── app.ts
+│   │   └── server.ts
+│   │
+│   └── package.json
+│
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── API.md
+│   └── TESTING.md
+│
+├── .gitignore
+├── .env.example
+├── LICENSE
+├── README.md
+└── package.json
+```
+
+You may adjust the structure if needed, but maintain separation of frontend, backend, services and database logic.
+
+---
+
+# PART 16 — ERROR HANDLING AND EDGE CASES
+
+Implement thoughtful handling for:
+
+- Gemini API unavailable.
+- Gemini rate limits.
+- Invalid AI responses.
+- MongoDB connection failure.
+- PayPal API unavailable.
+- Expired PayPal access token.
+- Checkout cancelled.
+- Duplicate checkout requests.
+- Invalid payment link.
+- Expired or cancelled payment request.
+- Payment already completed.
+- Invalid form input.
+- Network disconnection.
+- Session expiration.
+- Unauthorized record access.
+- Database write failure.
+- Missing configuration.
+
+For each situation:
+
+1. Handle the error on the backend.
+2. Return an appropriate HTTP status.
+3. Provide a safe error message.
+4. Display a clear frontend notification.
+5. Preserve user-entered data when possible.
+6. Allow a safe retry when appropriate.
+
+Never reveal internal stack traces, credentials or sensitive database details to users.
+
+---
+
+# PART 17 — DEPLOYMENT AND CONFIGURATION
+
+The project must support local development.
+
+Suggested local configuration:
+
+Frontend: `http://localhost:5173`
+
+Backend: `http://localhost:5000`
+
+Database: MongoDB Atlas.
+
+AI: Gemini API.
+
+Payments: PayPal Sandbox.
+
+Deployment may use:
+
+- Vercel for frontend.
+- Render for backend.
+- MongoDB Atlas for database.
+
+Configure production environment variables separately.
+
+Use HTTPS for deployed payment pages.
+
+Ensure CORS, cookies and return URLs are configured correctly for the deployed domains.
+
+Provide complete setup instructions.
+
+Do not claim that deployment is successful until the hosted application has been tested.
+
+---
+
+# PART 18 — README AND OPEN-SOURCE REQUIREMENTS
+
+Create a professional GitHub README containing:
+
+1. Project title.
+2. Product description.
+3. Problem statement.
+4. Solution.
+5. Main features.
+6. Technology stack.
+7. Architecture overview.
+8. Application screenshots.
+9. AI integration explanation.
+10. PayPal Sandbox integration explanation.
+11. Installation instructions.
+12. Environment variable configuration.
+13. Database setup.
+14. Running frontend and backend.
+15. Sandbox buyer testing instructions.
+16. Testing commands.
+17. API documentation.
+18. Security considerations.
+19. Known limitations.
+20. Future improvements.
+21. License.
+
+Include a recognized open-source license, preferably MIT, if appropriate for the project ownership and dependencies.
+
+Create `.env.example`.
+
+Never commit:
+
+- `.env`
+- API secrets.
+- Database passwords.
+- PayPal Client Secret.
+- Gemini API key.
+- Personal credentials.
+
+---
+
+# PART 19 — HACKATHON SUBMISSION STRATEGY
+
+The project should clearly demonstrate all five judging criteria.
+
+## 19.1 Technological Implementation
+
+Demonstrate:
+
+- Gemini natural-language understanding.
+- Structured AI output.
+- PayPal Orders API.
+- Real Sandbox checkout.
+- Server-side payment capture.
+- Persistent transaction records.
+
+## 19.2 Design
+
+Demonstrate:
+
+- Professional dashboard.
+- Consistent design system.
+- Smooth interactions.
+- Responsive interface.
+- Complete customer checkout journey.
+
+## 19.3 Potential Impact
+
+Explain how PayPilot reduces administrative work for freelancers and small businesses.
+
+Use a specific user scenario rather than vague claims.
+
+## 19.4 Innovation
+
+Show the difference between an ordinary payment processor and an intelligent payment workflow.
+
+The AI agent understands business instructions, prepares payment proposals, supports payment collection and explains financial activity.
+
+## 19.5 Presentation
+
+The video must show a working product from beginning to end.
+
+Suggested video structure:
+
+| Time | Demonstration |
+|---|---|
+| 0:00–0:20 | Introduce the problem |
+| 0:20–0:45 | Introduce PayPilot AI |
+| 0:45–1:15 | Demonstrate AI payment creation |
+| 1:15–1:45 | Demonstrate PayPal Sandbox checkout |
+| 1:45–2:10 | Show successful payment verification |
+| 2:10–2:35 | Show dashboard and AI insights |
+| 2:35–2:50 | Explain impact and technologies |
+
+Keep the video under three minutes.
+
+---
+
+# PART 20 — FINAL MASTER DEVELOPMENT COMMAND
+
+Now begin implementing PayPilot AI.
+
+Follow every requirement in this document.
+
+Your first responsibility is to inspect the available development environment and determine the correct application structure.
+
+Then:
+
+1. Create the project architecture.
+2. Install compatible dependencies.
+3. Build the complete design system.
+4. Develop the public landing page.
+5. Implement registration, login and onboarding.
+6. Implement the authenticated dashboard.
+7. Build all P0 frontend pages.
+8. Implement backend APIs.
+9. Configure MongoDB Atlas and Mongoose.
+10. Implement Gemini integration.
+11. Implement the AI Payment Agent.
+12. Implement PayPal Sandbox integration.
+13. Build the public checkout experience.
+14. Implement payment capture and transaction verification.
+15. Connect all frontend pages to actual APIs.
+16. Implement P1 features where time allows.
+17. Test all buttons, forms, navigation and API operations.
+18. Fix all discovered bugs.
+19. Optimize the application for mobile and desktop.
+20. Create documentation and submission assets.
+
+### Important execution instructions
+
+- Do not stop after creating a visual prototype.
+- Do not repeatedly ask the user to approve ordinary implementation decisions.
+- Use sensible professional defaults.
+- Ask only when an essential credential or decision is missing.
+- Never invent successful API responses.
+- Never fake payment transactions.
+- Never leave an unfinished feature disguised as a completed feature.
+- Never remove working code to make the implementation appear simpler.
+- Maintain a clear record of implemented and unimplemented functionality.
+- If a feature cannot be completed, document it honestly.
+- Prioritize a working end-to-end PayPal payment flow above optional features.
+
+### Final acceptance criteria
+
+PayPilot AI is ready for hackathon submission only when the following core journey works:
+
+**A user registers → enters the dashboard → describes a payment in natural language → Gemini extracts the details → user reviews and approves → backend creates a PayPal Sandbox order → customer completes checkout → backend captures and verifies the payment → database records the transaction → dashboard reflects the updated financial information.**
+
+The AI assistant must also be able to explain the resulting transaction using actual stored data.
+
+The final product must be visually polished, responsive, secure, documented and demonstrably functional.
+
+**Build a real product, not a mockup. Build a meaningful AI payment experience, not just a chatbot. Make PayPal a central part of the application, not an optional decoration.**
+
+# END OF PRODUCT REQUIREMENTS DOCUMENT
+
+**Project:** PayPilot AI  
+**Mission:** Make business payments intelligent, simple and accessible.
