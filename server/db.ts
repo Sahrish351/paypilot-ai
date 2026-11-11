@@ -13,7 +13,9 @@ interface DatabaseSchema {
 }
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
-const DB_FILE = path.join(DATA_DIR, 'store.json');
+const DB_FILE = process.env.PAYPILOT_DB_FILE
+  ? path.resolve(process.env.PAYPILOT_DB_FILE)
+  : path.join(DATA_DIR, 'store.json');
 
 function getInitialData(): DatabaseSchema {
   const defaultOwnerId = 'usr_john_doe_01';
