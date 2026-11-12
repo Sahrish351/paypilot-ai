@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth.ts';
 import { db } from '../db.ts';
 import { PaymentRequest, LineItem, PaymentStatus } from '../types.ts';
+import { getPaymentLink } from '../config.ts';
 
 const router = Router();
 
@@ -16,6 +17,12 @@ router.get('/public/:token', (req: Request, res: Response) => {
   }
 
   const owner = db.findUserById(request.ownerId);
+  const completedTxn =
+    request.status === 'COMPLETED'
+      ? db
+          .getTransactions(request.ownerId)
+          .find(t => t.paymentRequestId === request.id && t.status === 'Completed')
+      : undefined;
 
   res.json({
     id: request.id,
@@ -32,6 +39,18 @@ router.get('/public/:token', (req: Request, res: Response) => {
     status: request.status,
     paypalOrderId: request.paypalOrderId,
     createdAt: request.createdAt,
+    transaction: completedTxn
+      ? {
+          id: completedTxn.id,
+          paypalOrderId: completedTxn.paypalOrderId,
+          paypalCaptureId: completedTxn.paypalCaptureId,
+          amount: completedTxn.amount,
+          currency: completedTxn.currency,
+          paymentMethod: completedTxn.paymentMethod || 'PayPal',
+          status: completedTxn.status,
+          capturedAt: completedTxn.capturedAt,
+        }
+      : null,
     business: {
       name: owner?.businessName || 'PayPilot Business',
       type: owner?.businessType || 'Service Provider',
@@ -150,7 +169,7 @@ router.post('/', authMiddleware, (req: Request, res: Response) => {
   const saved = db.createPaymentRequest(newRequest);
   res.status(201).json({
     request: saved,
-    paymentLink: `${process.env.APP_URL || 'http://localhost:3000'}/pay/${saved.publicToken}`,
+    paymentLink: getPaymentLink(saved.publicToken),
     message: 'Payment request created successfully.',
   });
 });

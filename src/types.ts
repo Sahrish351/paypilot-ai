@@ -83,6 +83,7 @@ export interface TransactionItem {
   currency: string;
   status: 'Completed' | 'Refunded' | 'Pending' | 'Failed';
   type: 'Payment' | 'Refund' | 'Invoice';
+  paymentMethod?: string;
   captureReference?: string;
   environment?: 'sandbox';
   createdAt: string;

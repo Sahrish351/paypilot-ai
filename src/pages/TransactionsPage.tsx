@@ -26,11 +26,16 @@ export const TransactionsPage: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
+    const loadTransactions = () => {
+      fetch('/api/payments', { credentials: 'include' })
+        .then(r => r.json())
+        .then(d => setTransactions(d.transactions || []))
+        .finally(() => setLoading(false));
+    };
     setLoading(true);
-    fetch('/api/payments', { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => setTransactions(d.transactions || []))
-      .finally(() => setLoading(false));
+    loadTransactions();
+    window.addEventListener('focus', loadTransactions);
+    return () => window.removeEventListener('focus', loadTransactions);
   }, []);
 
   const completed = useMemo(
@@ -265,7 +270,7 @@ export const TransactionsPage: React.FC = () => {
                 ['Client', selectedTxn.clientName],
                 ['Client Email', selectedTxn.clientEmail || 'N/A'],
                 ['Description', selectedTxn.description],
-                ['Payment Method', 'PayPal Sandbox (Orders API v2)'],
+                ['Payment Method', `${selectedTxn.paymentMethod || 'PayPal'} (Sandbox Orders API v2)`],
                 ['Captured At', new Date(selectedTxn.capturedAt || selectedTxn.createdAt).toLocaleString()],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-4">

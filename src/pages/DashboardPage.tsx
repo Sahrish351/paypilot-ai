@@ -114,6 +114,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   }, [fetchAll, refreshSignal]);
 
   useEffect(() => {
+    const onFocus = () => {
+      fetchAll();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [fetchAll]);
+
+  useEffect(() => {
     fetchInsights();
   }, [fetchInsights, refreshSignal]);
 

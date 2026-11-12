@@ -386,6 +386,25 @@ test('PayPal Orders API v2 verification logic: order creation, capture verificat
     const okCapJson = (await okCapRes.json()) as any;
     assert.equal(okCapJson.success, true);
     assert.equal(okCapJson.transaction.paypalCaptureId, 'MOCK_CAP_999');
+    assert.equal(okCapJson.transaction.paymentMethod, 'PayPal');
+
+    // 4b. Public receipt endpoint returns verified transaction after completion
+    const publicAfter = await fetch(`${baseUrl}/api/payment-requests/public/${prData.request.publicToken}`);
+    assert.equal(publicAfter.status, 200);
+    const publicJson = (await publicAfter.json()) as any;
+    assert.equal(publicJson.status, 'COMPLETED');
+    assert.equal(publicJson.transaction.paypalCaptureId, 'MOCK_CAP_999');
+
+    // 4c. Dashboard stats & Transactions page reflect the completed capture
+    const statsRes = await fetch(`${baseUrl}/api/dashboard/stats`, { headers });
+    const statsJson = (await statsRes.json()) as any;
+    assert.equal(statsJson.totalRevenue, 150);
+    assert.equal(statsJson.totalTransactions, 1);
+
+    const txnsRes = await fetch(`${baseUrl}/api/payments`, { headers });
+    const txnsJson = (await txnsRes.json()) as any;
+    assert.equal(txnsJson.transactions.length, 1);
+    assert.equal(txnsJson.transactions[0].paypalCaptureId, 'MOCK_CAP_999');
 
     // 5. Duplicate capture returns idempotent result without calling PayPal capture again
     const countBefore = captureCount;
@@ -396,10 +415,65 @@ test('PayPal Orders API v2 verification logic: order creation, capture verificat
     });
     assert.equal(dupRes.status, 200);
     assert.equal(captureCount, countBefore);
+    const txnsAfterDup = await (await fetch(`${baseUrl}/api/payments`, { headers })).json() as any;
+    assert.equal(txnsAfterDup.transactions.length, 1);
+
+    // 6. Cancelled payment request cannot create an order or be captured
+    const cancelPrRes = await fetch(`${baseUrl}/api/payment-requests`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        clientName: 'Cancelled Client',
+        title: 'Cancelled Work',
+        unitPrice: 75,
+        currency: 'USD',
+      }),
+    });
+    const cancelPrData = (await cancelPrRes.json()) as any;
+    await fetch(`${baseUrl}/api/payment-requests/${cancelPrData.request.id}/cancel`, {
+      method: 'POST',
+      headers,
+    });
+    const cancelledOrderRes = await fetch(`${baseUrl}/api/payments/create-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ publicToken: cancelPrData.request.publicToken }),
+    });
+    assert.equal(cancelledOrderRes.status, 400);
   } finally {
     await new Promise<void>(resolve => mockPayPal.close(() => resolve()));
     process.env.PAYPAL_BASE_URL = prevBase ?? '';
     process.env.PAYPAL_CLIENT_ID = prevId ?? '';
     process.env.PAYPAL_CLIENT_SECRET = prevSecret ?? '';
+  }
+});
+
+test('Environment-independent APP_URL configuration for local and Render production', async () => {
+  const { getAppUrl, getPayPalReturnUrl, getPayPalCancelUrl, getPaymentLink, validateServerConfig } =
+    await import('../config.ts');
+  const prevAppUrl = process.env.APP_URL;
+
+  try {
+    process.env.APP_URL = 'http://localhost:3000';
+    assert.equal(getAppUrl(), 'http://localhost:3000');
+    assert.equal(getPaymentLink('tok_abc'), 'http://localhost:3000/pay/tok_abc');
+    assert.equal(getPayPalReturnUrl('tok_abc'), 'http://localhost:3000/pay/tok_abc?paypalStatus=success');
+    assert.equal(getPayPalCancelUrl('tok_abc'), 'http://localhost:3000/pay/tok_abc?paypalStatus=cancelled');
+
+    // Trailing slash in Render URL should be normalized cleanly
+    process.env.APP_URL = 'https://paypilot-ai-zz8c.onrender.com/';
+    assert.equal(getAppUrl(), 'https://paypilot-ai-zz8c.onrender.com');
+    assert.equal(getPaymentLink('tok_abc'), 'https://paypilot-ai-zz8c.onrender.com/pay/tok_abc');
+    assert.equal(
+      getPayPalReturnUrl('tok_abc'),
+      'https://paypilot-ai-zz8c.onrender.com/pay/tok_abc?paypalStatus=success'
+    );
+    assert.equal(
+      getPayPalCancelUrl('tok_abc'),
+      'https://paypilot-ai-zz8c.onrender.com/pay/tok_abc?paypalStatus=cancelled'
+    );
+    assert.equal(validateServerConfig().valid, true);
+  } finally {
+    process.env.APP_URL = prevAppUrl ?? '';
   }
 });

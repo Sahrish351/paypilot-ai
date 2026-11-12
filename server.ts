@@ -10,6 +10,7 @@ import dashboardRoutes from './server/routes/dashboard.ts';
 import reportsRoutes from './server/routes/reports.ts';
 import { isGeminiConfigured } from './server/services/gemini.ts';
 import { isPayPalConfigured } from './server/services/paypal.ts';
+import { getAppUrl, getPort, validateServerConfig } from './server/config.ts';
 
 dotenv.config({ path: ['.env.local', '.env'], quiet: true });
 
@@ -37,8 +38,14 @@ export function createApp() {
   // Explicit CORS policy for credentialed requests
   app.use((req, res, next) => {
     const origin = req.headers.origin;
+    let configuredAppUrl = 'http://localhost:3000';
+    try {
+      configuredAppUrl = getAppUrl();
+    } catch {
+      // fallback handled by startup validation
+    }
     const allowedOrigins = new Set([
-      process.env.APP_URL || 'http://localhost:3000',
+      configuredAppUrl,
       'http://localhost:3000',
       'http://127.0.0.1:3000',
     ]);
@@ -73,9 +80,16 @@ export function createApp() {
 
   // Health check endpoint
   app.get('/api/health', (_req, res) => {
+    let appUrl = 'http://localhost:3000';
+    try {
+      appUrl = getAppUrl();
+    } catch {
+      // ignore
+    }
     res.json({
       status: 'ok',
       service: 'PayPilot AI Backend',
+      appUrl,
       geminiConfigured: isGeminiConfigured(),
       paypalSandboxConfigured: isPayPalConfigured(),
       timestamp: new Date().toISOString(),
@@ -104,8 +118,19 @@ export function createApp() {
 }
 
 async function startServer() {
+  const configReport = validateServerConfig();
+  if (!configReport.valid) {
+    for (const err of configReport.errors) {
+      console.error(`[PayPilot AI Config Error] ${err}`);
+    }
+    process.exit(1);
+  }
+  for (const warning of configReport.warnings) {
+    console.warn(`[PayPilot AI Config Warning] ${warning}`);
+  }
+
   const app = createApp();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const PORT = getPort();
   const isProd = process.env.NODE_ENV === 'production';
 
   if (!isProd) {

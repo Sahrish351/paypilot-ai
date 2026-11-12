@@ -75,7 +75,7 @@ router.post('/create-order', async (req: Request, res: Response) => {
 // Capture and verify an approved PayPal Sandbox order
 router.post('/capture-order', async (req: Request, res: Response) => {
   try {
-    const { paymentRequestId, publicToken, orderId } = req.body;
+    const { paymentRequestId, publicToken, orderId, paymentMethod } = req.body;
     if (!orderId || typeof orderId !== 'string') {
       res.status(400).json({ error: 'PayPal Order ID is required for capture verification.' });
       return;
@@ -98,7 +98,8 @@ router.post('/capture-order', async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await capturePayPalOrder(paymentRequest, orderId);
+    const safeMethod = typeof paymentMethod === 'string' ? paymentMethod : undefined;
+    const result = await capturePayPalOrder(paymentRequest, orderId, safeMethod);
     res.json(result);
   } catch (err: any) {
     if (err instanceof PayPalConfigError) {

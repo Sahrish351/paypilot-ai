@@ -1,5 +1,14 @@
 import { db } from '../db.ts';
 import { PaymentRequest, Transaction } from '../types.ts';
+import { getPayPalCancelUrl, getPayPalReturnUrl } from '../config.ts';
+
+interface CachedOAuthToken {
+  cacheKey: string;
+  token: string;
+  expiresAt: number;
+}
+
+let cachedOAuth: CachedOAuthToken | null = null;
 
 function getPayPalConfig() {
   return {
@@ -52,6 +61,7 @@ export interface CreateOrderResult {
 export interface CaptureOrderResult {
   success: boolean;
   transaction: Transaction;
+  paymentRequest?: PaymentRequest;
   message: string;
 }
 
@@ -61,6 +71,11 @@ async function getPayPalAccessToken(): Promise<string> {
   }
 
   const { baseUrl, clientId, clientSecret } = getPayPalConfig();
+  const cacheKey = `${baseUrl}:${clientId}`;
+  if (cachedOAuth && cachedOAuth.cacheKey === cacheKey && Date.now() < cachedOAuth.expiresAt) {
+    return cachedOAuth.token;
+  }
+
   const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
   const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
@@ -78,26 +93,87 @@ async function getPayPalAccessToken(): Promise<string> {
     throw new Error(`PayPal Sandbox OAuth failed (${response.status}): ${errBody}`);
   }
 
-  const data = (await response.json()) as { access_token?: string };
+  const data = (await response.json()) as { access_token?: string; expires_in?: number };
   if (!data.access_token) {
     throw new Error('PayPal Sandbox OAuth response did not include an access_token.');
   }
+
+  const ttlMs = Math.max(60, (data.expires_in || 300) - 60) * 1000;
+  cachedOAuth = {
+    cacheKey,
+    token: data.access_token,
+    expiresAt: Date.now() + ttlMs,
+  };
   return data.access_token;
 }
 
+function resolvePaymentMethodLabel(
+  paymentSource?: Record<string, unknown>,
+  preferredMethod?: string
+): string {
+  if (paymentSource) {
+    if ('paylater' in paymentSource) return 'Pay Later';
+    if ('card' in paymentSource) return 'Debit or Credit Card';
+    if ('paypal' in paymentSource) return 'PayPal';
+  }
+  const normalized = (preferredMethod || '').trim().toLowerCase();
+  if (normalized === 'paylater' || normalized === 'pay later') return 'Pay Later';
+  if (normalized === 'card' || normalized === 'debit or credit card') return 'Debit or Credit Card';
+  if (normalized === 'paypal') return 'PayPal';
+  return 'PayPal';
+}
+
 /**
- * Create a PayPal Sandbox Order via Orders API v2.
+ * Create a PayPal Sandbox Order via Orders API v2 (or reuse an active CREATED/APPROVED order).
  * Never fabricates orders when PayPal credentials are missing.
  */
 export async function createPayPalOrder(paymentRequest: PaymentRequest): Promise<CreateOrderResult> {
-  if (paymentRequest.status === 'COMPLETED' || paymentRequest.status === 'CANCELLED') {
+  if (
+    paymentRequest.status === 'COMPLETED' ||
+    paymentRequest.status === 'CANCELLED' ||
+    paymentRequest.status === 'DRAFT'
+  ) {
     throw new Error(`Cannot create PayPal order for a ${paymentRequest.status.toLowerCase()} payment request.`);
   }
 
   const token = await getPayPalAccessToken();
   const { baseUrl } = getPayPalConfig();
+
+  // Reuse an existing active PayPal order if it is still CREATED or APPROVED
+  if (paymentRequest.paypalOrderId) {
+    try {
+      const existingRes = await fetch(
+        `${baseUrl}/v2/checkout/orders/${encodeURIComponent(paymentRequest.paypalOrderId)}`,
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(10_000),
+        }
+      );
+      if (existingRes.ok) {
+        const existingOrder = (await existingRes.json()) as {
+          id: string;
+          status: string;
+          links?: Array<{ rel: string; href: string }>;
+        };
+        if (existingOrder.status === 'CREATED' || existingOrder.status === 'APPROVED') {
+          const approvalUrl = existingOrder.links?.find(l => l.rel === 'approve')?.href;
+          return {
+            orderId: existingOrder.id,
+            status: existingOrder.status,
+            isSandboxLive: true,
+            approvalUrl,
+          };
+        }
+      }
+    } catch {
+      // Fall through to create a fresh order if lookup fails
+    }
+  }
+
   const currency = paymentRequest.currency || 'USD';
-  const appUrl = process.env.APP_URL || 'http://localhost:3000';
+  const returnUrl = getPayPalReturnUrl(paymentRequest.publicToken);
+  const cancelUrl = getPayPalCancelUrl(paymentRequest.publicToken);
 
   const orderPayload = {
     intent: 'CAPTURE',
@@ -131,8 +207,8 @@ export async function createPayPalOrder(paymentRequest: PaymentRequest): Promise
       brand_name: 'PayPilot AI (Sandbox)',
       landing_page: 'NO_PREFERENCE',
       user_action: 'PAY_NOW',
-      return_url: `${appUrl}/pay/${paymentRequest.publicToken}?paypalStatus=success`,
-      cancel_url: `${appUrl}/pay/${paymentRequest.publicToken}?paypalStatus=cancelled`,
+      return_url: returnUrl,
+      cancel_url: cancelUrl,
     },
   };
 
@@ -141,7 +217,7 @@ export async function createPayPalOrder(paymentRequest: PaymentRequest): Promise
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
-      'PayPal-Request-Id': `PAYPILOT_CREATE_${paymentRequest.id}_${paymentRequest.updatedAt}`,
+      'PayPal-Request-Id': `PAYPILOT_CREATE_${paymentRequest.id}_${Date.now()}`,
     },
     body: JSON.stringify(orderPayload),
     signal: AbortSignal.timeout(15_000),
@@ -174,11 +250,12 @@ export async function createPayPalOrder(paymentRequest: PaymentRequest): Promise
 
 /**
  * Capture and verify an approved PayPal Sandbox Order.
- * Verifies status === 'COMPLETED', currency, and captured amount match the stored request.
+ * Verifies status === 'COMPLETED', currency, reference_id, and captured amount match the stored request.
  */
 export async function capturePayPalOrder(
   paymentRequest: PaymentRequest,
-  paypalOrderId: string
+  paypalOrderId: string,
+  preferredPaymentMethod?: string
 ): Promise<CaptureOrderResult> {
   // Idempotency check
   if (paymentRequest.status === 'COMPLETED') {
@@ -189,13 +266,14 @@ export async function capturePayPalOrder(
       return {
         success: true,
         transaction: existingTxn,
+        paymentRequest,
         message: 'This payment has already been verified and completed.',
       };
     }
   }
 
-  if (paymentRequest.status === 'CANCELLED') {
-    throw new Error('Cannot capture a cancelled payment request.');
+  if (paymentRequest.status === 'CANCELLED' || paymentRequest.status === 'DRAFT') {
+    throw new Error(`Cannot capture a ${paymentRequest.status.toLowerCase()} payment request.`);
   }
 
   if (!paymentRequest.paypalOrderId || paymentRequest.paypalOrderId !== paypalOrderId) {
@@ -223,6 +301,7 @@ export async function capturePayPalOrder(
   const captureData = (await response.json()) as {
     id: string;
     status: string;
+    payment_source?: Record<string, unknown>;
     purchase_units?: Array<{
       reference_id?: string;
       payments?: {
@@ -235,7 +314,12 @@ export async function capturePayPalOrder(
     }>;
   };
 
-  const captureObj = captureData.purchase_units?.[0]?.payments?.captures?.[0];
+  const unit = captureData.purchase_units?.[0];
+  if (unit?.reference_id && unit.reference_id !== paymentRequest.id) {
+    throw new Error('Order reference mismatch: captured PayPal order belongs to a different payment request.');
+  }
+
+  const captureObj = unit?.payments?.captures?.[0];
   if (!captureObj || captureData.status !== 'COMPLETED' || captureObj.status !== 'COMPLETED') {
     throw new Error(
       `PayPal order is not completed (orderStatus=${captureData.status}, captureStatus=${captureObj?.status || 'NONE'}).`
@@ -256,6 +340,7 @@ export async function capturePayPalOrder(
   }
 
   const now = new Date().toISOString();
+  const paymentMethod = resolvePaymentMethodLabel(captureData.payment_source, preferredPaymentMethod);
   const transaction: Transaction = {
     id: `txn_${Date.now()}`,
     ownerId: paymentRequest.ownerId,
@@ -269,6 +354,7 @@ export async function capturePayPalOrder(
     currency: capturedCurrency,
     status: 'Completed',
     type: 'Payment',
+    paymentMethod,
     captureReference: `PAYPAL_SANDBOX_CAPTURE_${captureObj.id}`,
     environment: 'sandbox',
     createdAt: now,
@@ -276,10 +362,12 @@ export async function capturePayPalOrder(
   };
 
   const savedTxn = db.recordTransaction(transaction);
+  const updatedReq = db.getPaymentRequestById(paymentRequest.id, paymentRequest.ownerId);
 
   return {
     success: true,
     transaction: savedTxn,
+    paymentRequest: updatedReq,
     message: 'Payment verified and captured via PayPal Sandbox Orders API v2.',
   };
 }
